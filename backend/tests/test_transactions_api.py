@@ -1,4 +1,5 @@
 import hashlib
+from datetime import timedelta
 from decimal import Decimal
 
 from fastapi.testclient import TestClient
@@ -14,6 +15,7 @@ from backend.app.database import (
     MarketplaceTransaction,
     MarketplaceTransactionEvent,
     get_db,
+    utc_now,
 )
 from backend.app.main import app
 
@@ -150,6 +152,44 @@ def test_buy_now_idempotency_returns_same_reservation_on_retry(monkeypatch):
                 MarketplaceTransaction.idempotency_key == "stable-checkout-request"
             )).all()
             assert len(rows) == 1
+    finally:
+        _cleanup(engine)
+
+
+def test_admin_expiry_job_cancels_stale_reservation_and_releases_listing(monkeypatch):
+    engine, Session = _setup(monkeypatch)
+    admin_token = "reservation-admin-token"
+    monkeypatch.setenv("DOMHOSTIFY_ADMIN_API_TOKEN", admin_token)
+    try:
+        listing_id = _create_listing()
+        _enable_buy_now(Session, listing_id)
+        created = client.post(
+            f"/api/v1/marketplace/listings/{listing_id}/buy-now",
+            headers={**BUYER_HEADERS, "Idempotency-Key": "expires-soon"},
+        )
+        assert created.status_code == 201
+        transaction_id = created.json()["id"]
+        with Session() as db:
+            listing = db.get(MarketplaceListing, listing_id)
+            listing.reserved_until = utc_now() - timedelta(minutes=1)
+            db.commit()
+
+        response = client.post(
+            "/api/v1/admin/marketplace/reservations/expire",
+            headers={"Authorization": f"Bearer {admin_token}"},
+        )
+        assert response.status_code == 200
+        assert response.json()["expired_reservations"] == 1
+        with Session() as db:
+            listing = db.get(MarketplaceListing, listing_id)
+            transaction = db.get(MarketplaceTransaction, transaction_id)
+            events = db.scalars(select(MarketplaceTransactionEvent).where(
+                MarketplaceTransactionEvent.transaction_id == transaction_id
+            ).order_by(MarketplaceTransactionEvent.id)).all()
+            assert listing.reservation_transaction_id is None
+            assert listing.reserved_until is None
+            assert transaction.status == "cancelled"
+            assert [event.to_status for event in events] == ["buy_now_pending", "cancelled"]
     finally:
         _cleanup(engine)
 
