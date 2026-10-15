@@ -3,7 +3,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from backend.app.database import Base, MarketplaceListing as DBMarketplaceListing, get_db
+from backend.app.database import Base, MarketplaceListing as DBMarketplaceListing, RegistrarOffer as DBRegistrarOffer, get_db
 from backend.app.main import app, normalize_domain_query
 
 client = TestClient(app)
@@ -235,6 +235,86 @@ def test_persistent_marketplace_endpoint_fails_closed_when_schema_is_missing() -
     app.dependency_overrides[get_db] = override_get_db
     try:
         response = client.get("/api/v1/marketplace/persistent-listings")
+        assert response.status_code == 503
+        assert "Apply database migrations first" in response.json()["detail"]
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+        engine.dispose()
+
+
+def test_registrar_offers_returns_only_verified_priced_rows_sorted_by_price() -> None:
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(bind=engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+
+    with TestSession() as session:
+        session.add_all([
+            DBRegistrarOffer(
+                domain="brandexample.com", registrar_key="registrar-b",
+                availability="unknown", registration_price=12.0, renewal_price=18.0,
+                currency="EUR", source_status="verified",
+            ),
+            DBRegistrarOffer(
+                domain="brandexample.com", registrar_key="registrar-a",
+                availability="available", registration_price=8.0, renewal_price=16.0,
+                currency="EUR", source_status="verified",
+            ),
+            DBRegistrarOffer(
+                domain="brandexample.com", registrar_key="unverified",
+                availability="available", registration_price=1.0, currency="EUR",
+                source_status="demo_only",
+            ),
+            DBRegistrarOffer(
+                domain="brandexample.com", registrar_key="missing-price",
+                availability="unknown", registration_price=None, currency="EUR",
+                source_status="verified",
+            ),
+        ])
+        session.commit()
+
+    def override_get_db():
+        with TestSession() as session:
+            yield session
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        response = client.get("/api/v1/domains/offers", params={"domain": "brandexample.com"})
+        assert response.status_code == 200
+        offers = response.json()
+        assert [item["registrar_key"] for item in offers] == ["registrar-a", "registrar-b"]
+        assert [item["registration_price"] for item in offers] == [8.0, 12.0]
+        assert all(item["source_status"] == "verified" for item in offers)
+        assert offers[0]["availability"] == "available"
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+        Base.metadata.drop_all(bind=engine)
+        engine.dispose()
+
+
+def test_registrar_offers_rejects_invalid_domain() -> None:
+    response = client.get("/api/v1/domains/offers", params={"domain": "https://bad.example"})
+    assert response.status_code == 422
+
+
+def test_registrar_offers_fails_closed_when_schema_is_missing() -> None:
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    TestSession = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+
+    def override_get_db():
+        with TestSession() as session:
+            yield session
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        response = client.get("/api/v1/domains/offers", params={"domain": "brandexample.com"})
         assert response.status_code == 503
         assert "Apply database migrations first" in response.json()["detail"]
     finally:
