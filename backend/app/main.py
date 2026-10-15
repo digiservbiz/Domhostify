@@ -6,6 +6,7 @@ configured, so domain availability must remain unknown.
 import re
 
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 app = FastAPI(
@@ -15,6 +16,16 @@ app = FastAPI(
         "Catalog entries currently use illustrative demo data, not live offers."
     ),
     version="0.2.0",
+)
+
+# Restrict browser access to common local development origins. Production origins
+# must be explicitly configured before deployment.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5500", "http://127.0.0.1:5500"],
+    allow_credentials=False,
+    allow_methods=["GET"],
+    allow_headers=["Content-Type"],
 )
 
 _LABEL_RE = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$")
