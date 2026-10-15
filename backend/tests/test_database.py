@@ -4,6 +4,7 @@ from backend.app.database import Base
 def test_catalog_models_define_expected_tables() -> None:
     assert "registrar_offers" in Base.metadata.tables
     assert "marketplace_listings" in Base.metadata.tables
+    assert "hosting_plans" in Base.metadata.tables
 
 
 def test_registrar_offer_availability_defaults_to_unknown() -> None:
@@ -22,4 +23,13 @@ def test_marketplace_listing_defaults_to_inactive_draft() -> None:
 def test_catalog_price_fields_are_nullable_until_provider_data_exists() -> None:
     table = Base.metadata.tables["registrar_offers"]
     assert table.c.registration_price.nullable
+    assert table.c.renewal_price.nullable
+
+
+
+def test_hosting_plan_catalog_defaults_to_inactive_unverified() -> None:
+    table = Base.metadata.tables["hosting_plans"]
+    assert table.c.source_status.default.arg == "unverified"
+    assert table.c.active.default.arg is False
+    assert table.c.introductory_price.nullable
     assert table.c.renewal_price.nullable
