@@ -320,3 +320,48 @@ def test_registrar_offers_fails_closed_when_schema_is_missing() -> None:
     finally:
         app.dependency_overrides.pop(get_db, None)
         engine.dispose()
+
+
+def test_persistent_catalog_endpoints_cap_response_size() -> None:
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(bind=engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+
+    with TestSession() as session:
+        session.add_all([
+            DBMarketplaceListing(
+                domain=f"brand{index}.com", asking_price=float(index + 1),
+                currency="EUR", sale_type="buy_now", listing_status="active", active=True,
+            )
+            for index in range(105)
+        ])
+        session.add_all([
+            DBRegistrarOffer(
+                domain="brandexample.com", registrar_key=f"registrar-{index}",
+                availability="unknown", registration_price=float(index + 1),
+                currency="EUR", source_status="verified",
+            )
+            for index in range(105)
+        ])
+        session.commit()
+
+    def override_get_db():
+        with TestSession() as session:
+            yield session
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        listings = client.get("/api/v1/marketplace/persistent-listings")
+        offers = client.get("/api/v1/domains/offers", params={"domain": "brandexample.com"})
+        assert listings.status_code == 200
+        assert offers.status_code == 200
+        assert len(listings.json()) == 100
+        assert len(offers.json()) == 100
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+        Base.metadata.drop_all(bind=engine)
+        engine.dispose()
