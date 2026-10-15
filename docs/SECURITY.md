@@ -11,6 +11,7 @@
 - Use opaque affiliate click IDs and restrict reporting access.
 - Patch dependencies and scan them in CI when configured.
 - Require authentication/authorization before seller, admin, or transaction writes go live.
+- The current seller Bearer token is a bootstrap-only single identity; never share it across sellers. Seller inventory reads are scoped to the opaque reference derived from that token, but production needs real per-user identities, sessions, role checks, rotation, and abuse controls.
 - Back up persistent data and test restoration before production launch.
 
 ## Trust and transparency
