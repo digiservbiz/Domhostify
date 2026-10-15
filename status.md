@@ -14,7 +14,7 @@ The repository contains product/engineering documentation, a FastAPI demo API, d
 | PRD and user journeys | In progress | 75% | Initial requirements and acceptance criteria drafted |
 | Architecture and data boundaries | In progress | 65% | API/frontend boundary, demo-data trust rules, and registrar adapter contract documented |
 | Roadmap and project governance | In progress | 85% | Core project docs and status tracker maintained |
-| Security, privacy, compliance | In progress | 40% | Input validation, local CORS, allowlisted provider keys, HTTPS-only affiliate destinations; rate limiting and broader controls remain |
+| Security, privacy, compliance | In progress | 45% | Input validation, configurable CORS origins, allowlisted provider keys, HTTPS-only affiliate destinations; rate limiting and broader controls remain |
 | API implementation | In progress | 50% | Health, domain search via provider contract, hosting plans, listings, filters; not runtime-verified |
 | Database and migrations | In progress | 20% | SQLAlchemy models and session factory added; Alembic migrations and API integration remain |
 | Frontend | In progress | 35% | Responsive prototype now calls extension suggestions for bare names and domain search for full domains; not smoke-tested |
@@ -40,6 +40,7 @@ The repository contains product/engineering documentation, a FastAPI demo API, d
 - [x] Marketplace listing endpoint and filters
 - [x] Responsive frontend prototype committed
 - [x] Local development CORS origins restricted to common localhost ports
+- [x] Production CORS origins can be configured through an environment variable
 - [x] pytest suite and GitHub Actions workflow committed
 - [ ] Tests executed successfully (including new affiliate and database tests)
 - [ ] CI result verified
