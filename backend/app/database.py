@@ -92,6 +92,37 @@ class AffiliateClick(Base):
     clicked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, server_default=func.now())
 
 
+class MarketplaceTransaction(Base):
+    """Transaction state only; payment credentials and card data never belong here."""
+    __tablename__ = "marketplace_transactions"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    listing_id: Mapped[int] = mapped_column(Integer, index=True)
+    buyer_ref: Mapped[str] = mapped_column(String(64), index=True)
+    seller_ref: Mapped[str] = mapped_column(String(64), index=True)
+    transaction_type: Mapped[str] = mapped_column(String(20), default="make_offer", server_default="make_offer")
+    amount: Mapped[float] = mapped_column(Float)
+    currency: Mapped[str] = mapped_column(String(3), default="EUR", server_default="EUR")
+    status: Mapped[str] = mapped_column(String(30), default="offer_pending", server_default="offer_pending", index=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, server_default=func.now())
+
+
+class MarketplaceTransactionEvent(Base):
+    """Append-only history of transaction state changes."""
+    __tablename__ = "marketplace_transaction_events"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    transaction_id: Mapped[int] = mapped_column(Integer, index=True)
+    event_type: Mapped[str] = mapped_column(String(60), index=True)
+    from_status: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    to_status: Mapped[str] = mapped_column(String(30))
+    actor_type: Mapped[str] = mapped_column(String(30), default="system", server_default="system")
+    actor_ref: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    event_note: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, server_default=func.now(), index=True)
+
+
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./domhostify.db")
 _engine_options = {"connect_args": {"check_same_thread": False}} if DATABASE_URL.startswith("sqlite") else {}
 engine = create_engine(DATABASE_URL, pool_pre_ping=True, **_engine_options)
