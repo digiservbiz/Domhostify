@@ -17,7 +17,6 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from backend.app.database import (
-    ListingAuditEvent,
     MarketplaceListing,
     OwnershipChallenge,
     get_db,
@@ -61,7 +60,6 @@ def create_listing_ownership_challenge(
         if listing.ownership_status == "verified":
             raise HTTPException(status_code=409, detail="Listing ownership is already verified.")
 
-        now = utc_now()
         previous = db.scalars(
             select(OwnershipChallenge).where(
                 OwnershipChallenge.listing_id == listing.id,
