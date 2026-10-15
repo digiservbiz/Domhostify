@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-10-15  
 **Current phase:** Phase 4 — Marketplace security foundation  
-**Overall progress:** 85% (seller lifecycle and Make Offer API are committed; GitHub Actions passes 49 tests and clean-database Alembic upgrade/downgrade/upgrade is verified; real user accounts, payments, providers, and deployment remain outstanding)
+**Overall progress:** 86% (Buy Now now creates a time-limited atomic listing reservation; cancellation releases it; GitHub Actions passes 51 tests; payment, real accounts, providers, and deployment remain outstanding)
 
 ## Executive status
 The marketplace now has fail-closed bootstrap boundaries for seller, buyer, and admin actions. Sellers can submit, edit, withdraw, verify ownership, and review offers; buyers can submit, inspect, and cancel make-offers. Offers are only accepted on publicly approved listings and every state change is audited. Opaque SHA-256-derived references are used, but the tokens still represent one bootstrap identity each—not real multi-user accounts.
@@ -15,11 +15,11 @@ The marketplace now has fail-closed bootstrap boundaries for seller, buyer, and 
 | Architecture and data boundaries | In progress | 78% | Seller auth boundary and marketplace trust gates defined |
 | Roadmap and project governance | In progress | 90% | Status and migration sequence maintained |
 | Security, privacy, compliance | In progress | 78% | Seller/admin bootstrap boundaries, hashed one-time DNS proof, bounded DNS lookup, audit trail; full auth/abuse controls remain |
-| API implementation | In progress | 96% | Seller lifecycle, DNS verification, admin moderation, and authenticated make-offer endpoints committed; runtime behavior covered by CI tests |
-| Database and migrations | In progress | 92% | Alembic clean-database upgrade → downgrade → upgrade passed in GitHub Actions; production database verification remains pending |
+| API implementation | In progress | 97% | Seller lifecycle, DNS verification, admin moderation, Make Offer, and expiring Buy Now reservation endpoints are CI-tested |
+| Database and migrations | In progress | 95% | Migration `0008_listing_reservations` is included in the passing clean-database round-trip; production database verification remains pending |
 | Frontend | In progress | 35% | Responsive comparison prototype; seller UI not connected |
 | Provider/affiliate integrations | In progress | 30% | Safe affiliate redirect foundation; no live provider access verified |
-| Automated tests and CI | In progress | 93% | GitHub Actions passed migration round-trip and 49 tests on 2026-10-15; API/frontend smoke tests remain pending |
+| Automated tests and CI | In progress | 95% | GitHub Actions passed migration round-trip and 51 tests on 2026-10-15 with one warning; API/frontend smoke tests remain pending |
 | Deployment and monitoring | Not started | 0% | No deployment verified |
 
 ## Verified repository deliverables
@@ -31,6 +31,9 @@ The marketplace now has fail-closed bootstrap boundaries for seller, buyer, and 
 - [x] Ownership challenge model stores a SHA-256 token hash rather than a raw token
 - [x] Ownership challenge migration `0006_ownership_challenges.py`
 - [x] Transaction state and append-only event models plus migration `0007_marketplace_transactions.py`
+- [x] Buy Now listing reservation fields and migration `0008_listing_reservations.py`
+- [x] Buy Now intent endpoint atomically reserves a public Buy Now listing for ten minutes; no payment is collected
+- [x] Buyer cancellation releases the matching reservation; CI tests confirm a second intent is blocked until release
 - [x] Guarded transaction state-machine helper with allowed-transition checks and event recording
 - [x] Transaction tests cover legal transition, illegal transition, completion timestamp, and actor/note validation
 - [x] Marketplace lifecycle helpers create bounded DNS-TXT challenges and append audit events
@@ -53,9 +56,9 @@ The marketplace now has fail-closed bootstrap boundaries for seller, buyer, and 
 - [x] Registrar and hosting persistent read catalogs
 - [x] HTTPS-only allowlisted affiliate redirects with opaque click tracking
 - [x] Responsive frontend prototype
-- [x] Runtime pytest suite verified in GitHub Actions: 49 passed, 1 warning (2026-10-15)
+- [x] Runtime pytest suite verified in GitHub Actions: 51 passed, 1 warning (2026-10-15)
 - [x] Alembic clean-database upgrade → downgrade → upgrade verified in GitHub Actions (2026-10-15)
-- [x] GitHub Actions CI passed on transaction code: 45 passed, 1 warning (2026-10-15)
+- [x] GitHub Actions CI passed on Buy Now reservation code: 51 passed, 1 warning (2026-10-15)
 - [ ] API/frontend smoke test verified
 - [ ] Full user/account authentication and authorization implemented
 - [x] Authenticated seller DNS TXT challenge and verification endpoints committed (runtime and live DNS behavior still unverified)
@@ -65,7 +68,8 @@ The marketplace now has fail-closed bootstrap boundaries for seller, buyer, and 
 - [ ] Full moderation/admin operations implemented
 - [x] Bootstrap admin review endpoint supports approve/reject with audit events
 - [x] Bootstrap-authenticated Make Offer submission, buyer offer history/cancellation, seller offer inventory, accept/reject decisions, and transaction audit events committed and CI-tested
-- [ ] Buy Now checkout, atomic listing reservation, idempotency, and real multi-user buyer/seller authorization implemented
+- [x] Temporary Buy Now reservation and release lifecycle implemented and CI-tested
+- [ ] Payment-backed Buy Now checkout, idempotency, and real multi-user buyer/seller authorization implemented
 - [ ] Payments/transfer workflow implemented
 - [ ] Auctions implemented
 - [ ] Live registrar/hosting provider integrations verified
@@ -83,7 +87,7 @@ The marketplace now has fail-closed bootstrap boundaries for seller, buyer, and 
 - [x] M4.3.1 Seller listing edit/withdraw lifecycle committed and CI-tested
 - [x] M5.0 Transaction schema, event log, and guarded state-machine foundation committed and CI-tested
 - [x] M5.1 Bootstrap-authenticated Make Offer API, buyer/seller offer views, decisions, cancellation, and audit trail (CI-tested)
-- [ ] M5.2 Buy Now, listing reservation, idempotency, payments, and transfer workflow
+- [x] M5.2 Temporary Buy Now reservation with atomic availability gate and cancellation release (51 tests passing)\n- [ ] M5.3 Payment-backed checkout, idempotency, and registrar transfer workflow
 - [ ] M4.4 Moderation/admin workflow (bootstrap approve/reject exists; seller listing edit/withdraw now committed)
 - [ ] M5 Transaction workflows
 - [ ] M6 Live provider integrations
@@ -97,7 +101,7 @@ The marketplace now has fail-closed bootstrap boundaries for seller, buyer, and 
 - Authenticated seller ownership-challenge and verification endpoints now exist in code. They issue a 30-minute TXT token, resolve TXT with a 4-second DNS lifetime, consume a valid challenge once, and keep listings unpublished pending moderation. Runtime tests and live DNS behavior remain unverified.
 - Seller listing editing and soft withdrawal endpoints are committed. Edits unpublish the listing and reset moderation to pending; withdrawal preserves the record/audit history. Runtime behavior remains unverified. Full admin tooling is still incomplete; bootstrap approve/reject requires a separate admin token and refuses approval until ownership is verified.
 - Seller inventory currently uses a single configured bootstrap token; do not issue it to multiple sellers. A real account/session/role system is required for multi-seller production use.
-- Make-offer API endpoints are implemented using one bootstrap buyer token and one bootstrap seller token. They do not create a payment obligation, process payment, reserve a listing for checkout, or transfer a domain. Buy Now, payment webhooks, escrow, refunds, disputes, abuse prevention, and auctions remain unimplemented.
+- Make-offer API endpoints and a ten-minute Buy Now reservation intent are implemented using one bootstrap buyer token and one bootstrap seller token. The reservation blocks another intent and is released on buyer cancellation or can be replaced after expiry. No payment obligation is settled, no payment is processed, and no domain is transferred. Payment webhooks, escrow, refunds, disputes, real account auth, abuse prevention, and auctions remain unimplemented.
 
 ## Next actions
 1. Add API/frontend smoke tests and verify DNS TXT behavior against a controlled authoritative DNS zone.
