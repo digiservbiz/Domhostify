@@ -158,3 +158,9 @@ def test_affiliate_redirect_uses_allowlisted_configured_destination(monkeypatch)
     response = client.get("/api/v1/affiliate/examplehost", follow_redirects=False)
     assert response.status_code == 302
     assert response.headers["location"] == "https://partner.example/offer?ref=domhostify"
+
+
+def test_cors_does_not_allow_all_origins_by_default() -> None:
+    cors = next(middleware for middleware in app.user_middleware if middleware.cls.__name__ == "CORSMiddleware")
+    assert "*" not in cors.options["allow_origins"]
+    assert "http://localhost:5173" in cors.options["allow_origins"]
