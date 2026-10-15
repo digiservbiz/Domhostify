@@ -6,7 +6,7 @@ perform transfers. Buyer/seller tokens are single-identity bootstrap credentials
 import hashlib
 import hmac
 import os
-from datetime import timedelta
+from datetime import timedelta, timezone
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Header, HTTPException
@@ -25,6 +25,15 @@ from backend.app.database import (
 from backend.app.transactions import transition_transaction
 
 router = APIRouter(tags=["transactions"])
+
+
+def _is_future(value, now) -> bool:
+    if value is None:
+        return False
+    # SQLite may return naive datetimes despite timezone=True; normalize as UTC.
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value > now
 
 
 def _token_ref(env_key: str, authorization: str | None, role: str) -> str:
@@ -143,7 +152,7 @@ def create_buy_now_intent(
         if (
             existing.status == "buy_now_pending"
             and existing.expires_at is not None
-            and existing.expires_at > now
+            and _is_future(existing.expires_at, now)
             and listing is not None
             and listing.reservation_transaction_id == existing.id
         ):
