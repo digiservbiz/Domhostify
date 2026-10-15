@@ -13,7 +13,7 @@ DomHostify helps people move from a business idea to an online presence: find a 
 6. Seller portfolio, listing management, pricing guidance, and analytics.
 
 ## Current delivery stage
-**Phase 1 — Initial API baseline.** The API scaffold, demo endpoints, initial tests, and CI workflow are committed. Tests and runtime behavior have not yet been independently verified. See [status.md](status.md), [PRD](docs/PRD.md), and [roadmap](docs/ROADMAP.md).
+**Phase 2 — Comparison prototype.** The API scaffold, domain input validation, demo endpoints, expanded tests, CI workflow, and responsive HTML/JavaScript prototype are committed. Runtime and CI results are not yet verified. See [status.md](status.md), [PRD](docs/PRD.md), and [roadmap](docs/ROADMAP.md).
 
 ## Project documentation
 - [Product requirements (PRD)](docs/PRD.md)
@@ -29,8 +29,8 @@ DomHostify helps people move from a business idea to an online presence: find a 
 - API: Python + FastAPI
 - Tests: pytest + FastAPI TestClient
 - CI: GitHub Actions
+- Frontend prototype: plain HTML/CSS/JavaScript in `frontend/index.html`
 - Planned persistence: PostgreSQL + SQLAlchemy/Alembic after data contracts stabilize
-- Planned frontend: responsive web client after API contracts stabilize
 
 ## Run locally
 Use Python 3.11 or newer.
@@ -38,10 +38,13 @@ Use Python 3.11 or newer.
 1. Create and activate a virtual environment.
 2. Install dependencies: `python -m pip install -r requirements.txt`
 3. Start the API from the repository root: `python -m uvicorn backend.app.main:app --reload`
-4. Open `/docs` on the local server to explore the API.
-5. Run tests: `python -m pytest -q`
+4. Open `http://127.0.0.1:8000/docs` to explore the API.
+5. Serve `frontend/index.html` using a local static server on port 5500 or 5173, or open it directly if your browser allows local fetches.
+6. Run tests: `python -m pytest -q`
 
-The current domain, hosting, and marketplace records are illustrative demo data. The domain endpoint explicitly returns availability as unknown; it does not contact a registrar.
+The frontend expects the API at `http://127.0.0.1:8000`. CORS currently permits common localhost development origins only. Update this intentionally before deployment.
+
+Domain, hosting, and marketplace records are illustrative demo data. Domain search explicitly returns availability as unknown and does not contact a registrar.
 
 ## Product principles
 - Distinguish verified live data from estimates, cached data, and demo data.
