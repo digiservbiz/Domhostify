@@ -56,6 +56,10 @@ def _require_seller_auth(authorization: str | None = Header(default=None)) -> st
     return _token_ref("DOMHOSTIFY_SELLER_API_TOKEN", authorization, "seller")
 
 
+def _require_admin_auth(authorization: str | None = Header(default=None)) -> str:
+    return _token_ref("DOMHOSTIFY_ADMIN_API_TOKEN", authorization, "admin")
+
+
 class OfferCreate(BaseModel):
     amount: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
 
@@ -127,6 +131,43 @@ def create_offer(
     except OperationalError as exc:
         db.rollback()
         raise HTTPException(status_code=503, detail="Marketplace database is not initialized. Apply database migrations first.") from exc
+
+
+@router.post("/api/v1/admin/marketplace/reservations/expire")
+def expire_buy_now_reservations(
+    admin_ref: str = Depends(_require_admin_auth),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Expire stale reservations and append cancellation events; suitable for a scheduled job."""
+    now = utc_now()
+    listings = db.scalars(select(MarketplaceListing).where(
+        MarketplaceListing.reservation_transaction_id.is_not(None),
+        MarketplaceListing.reserved_until <= now,
+    )).all()
+    expired = 0
+    for listing in listings:
+        transaction_id = listing.reservation_transaction_id
+        transaction = db.get(MarketplaceTransaction, transaction_id)
+        if transaction is not None and transaction.transaction_type == "buy_now" and transaction.status == "buy_now_pending":
+            transition_transaction(
+                db,
+                transaction=transaction,
+                target_status="cancelled",
+                actor_type="admin",
+                actor_ref=admin_ref,
+                note="Buy Now reservation expired before payment started",
+            )
+        db.execute(update(MarketplaceListing).where(
+            MarketplaceListing.id == listing.id,
+            MarketplaceListing.reservation_transaction_id == transaction_id,
+        ).execution_options(synchronize_session=False).values(
+            reservation_transaction_id=None,
+            reserved_until=None,
+            updated_at=now,
+        ))
+        expired += 1
+    db.commit()
+    return {"expired_reservations": expired}
 
 
 @router.post("/api/v1/marketplace/listings/{listing_id}/buy-now", status_code=201)
