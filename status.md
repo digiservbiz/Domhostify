@@ -36,7 +36,9 @@ The repository contains product/engineering documentation, a FastAPI demo API, d
 - [x] Database model safety tests committed, including database-side defaults and nullable provider pricing
 - [x] Read-only persistent marketplace listing endpoint filters to active, published records
 - [x] Read-only registrar offer endpoint filters to verified, priced records and sorts by registration price
+- [x] Read-only registrar offer endpoint filters to verified, priced records and sorts by registration price
 - [x] Isolated SQLite API tests cover active-only database listing reads, price filtering, and safe failure when schema is missing
+- [x] Isolated SQLite API tests cover registrar offer verification filters, price ordering, malformed domain rejection, and missing-schema handling
 - [x] Isolated SQLite API tests cover registrar offer verification filters, price ordering, malformed domain rejection, and missing-schema handling
 - [x] Registrar provider contract and safe demo adapter committed
 - [x] Provider adapter safety tests committed
