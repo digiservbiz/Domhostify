@@ -90,7 +90,7 @@ def test_buy_now_reservation_blocks_second_checkout_and_cancel_releases(monkeypa
 
         first = client.post(
             f"/api/v1/marketplace/listings/{listing_id}/buy-now",
-            headers=BUYER_HEADERS,
+            headers={**BUYER_HEADERS, "Idempotency-Key": "buy-first"},
         )
         assert first.status_code == 201
         intent = first.json()
@@ -100,7 +100,7 @@ def test_buy_now_reservation_blocks_second_checkout_and_cancel_releases(monkeypa
 
         second = client.post(
             f"/api/v1/marketplace/listings/{listing_id}/buy-now",
-            headers=BUYER_HEADERS,
+            headers={**BUYER_HEADERS, "Idempotency-Key": "buy-second"},
         )
         assert second.status_code == 409
 
@@ -113,7 +113,7 @@ def test_buy_now_reservation_blocks_second_checkout_and_cancel_releases(monkeypa
 
         retry = client.post(
             f"/api/v1/marketplace/listings/{listing_id}/buy-now",
-            headers=BUYER_HEADERS,
+            headers={**BUYER_HEADERS, "Idempotency-Key": "buy-retry"},
         )
         assert retry.status_code == 201
         with Session() as db:
@@ -124,6 +124,46 @@ def test_buy_now_reservation_blocks_second_checkout_and_cancel_releases(monkeypa
                 MarketplaceTransactionEvent.transaction_id == retry.json()["id"]
             )).all()
             assert [event.to_status for event in events] == ["buy_now_pending"]
+    finally:
+        _cleanup(engine)
+
+
+def test_buy_now_idempotency_returns_same_reservation_on_retry(monkeypatch):
+    engine, Session = _setup(monkeypatch)
+    try:
+        listing_id = _create_listing()
+        _enable_buy_now(Session, listing_id)
+        headers = {**BUYER_HEADERS, "Idempotency-Key": "stable-checkout-request"}
+        first = client.post(
+            f"/api/v1/marketplace/listings/{listing_id}/buy-now",
+            headers=headers,
+        )
+        replay = client.post(
+            f"/api/v1/marketplace/listings/{listing_id}/buy-now",
+            headers=headers,
+        )
+        assert first.status_code == 201
+        assert replay.status_code == 201
+        assert replay.json()["id"] == first.json()["id"]
+        with Session() as db:
+            rows = db.scalars(select(MarketplaceTransaction).where(
+                MarketplaceTransaction.idempotency_key == "stable-checkout-request"
+            )).all()
+            assert len(rows) == 1
+    finally:
+        _cleanup(engine)
+
+
+def test_buy_now_requires_idempotency_key(monkeypatch):
+    engine, Session = _setup(monkeypatch)
+    try:
+        listing_id = _create_listing()
+        _enable_buy_now(Session, listing_id)
+        response = client.post(
+            f"/api/v1/marketplace/listings/{listing_id}/buy-now",
+            headers=BUYER_HEADERS,
+        )
+        assert response.status_code == 400
     finally:
         _cleanup(engine)
 
