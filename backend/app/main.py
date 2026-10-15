@@ -251,6 +251,30 @@ def submit_seller_listing(payload: SellerListingCreate, seller_ref: str = Depend
     return PersistentMarketplaceListing(id=listing.id, domain=listing.domain, asking_price=listing.asking_price, currency=listing.currency, sale_type=listing.sale_type, listing_status=listing.listing_status, ownership_status=listing.ownership_status, moderation_status=listing.moderation_status, updated_at=listing.updated_at.isoformat() if listing.updated_at else None)
 
 
+@app.get("/api/v1/marketplace/seller/listings", response_model=list[PersistentMarketplaceListing], tags=["marketplace"])
+def list_seller_listings(seller_ref: str = Depends(_require_seller_auth), db: Session = Depends(get_db)) -> list[PersistentMarketplaceListing]:
+    """Return only listings belonging to the authenticated bootstrap seller identity."""
+    statement = select(DBMarketplaceListing).where(DBMarketplaceListing.seller_ref == seller_ref).order_by(DBMarketplaceListing.created_at.desc()).limit(100)
+    try:
+        records = db.scalars(statement).all()
+    except OperationalError as exc:
+        raise HTTPException(status_code=503, detail="Marketplace database is not initialized. Apply database migrations first.") from exc
+    return [
+        PersistentMarketplaceListing(
+            id=r.id,
+            domain=r.domain,
+            asking_price=r.asking_price,
+            currency=r.currency,
+            sale_type=r.sale_type,
+            listing_status=r.listing_status,
+            ownership_status=r.ownership_status,
+            moderation_status=r.moderation_status,
+            updated_at=r.updated_at.isoformat() if r.updated_at else None,
+        )
+        for r in records
+    ]
+
+
 @app.get("/api/v1/hosting/plans", response_model=list[HostingPlan], tags=["hosting"])
 def list_hosting_plans(site_type: str | None = Query(default=None, max_length=80), max_price: float | None = Query(default=None, ge=0)) -> list[HostingPlan]:
     plans = DEMO_HOSTING_PLANS
