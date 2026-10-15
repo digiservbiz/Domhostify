@@ -26,6 +26,7 @@ from backend.app.database import AffiliateClick as DBAffiliateClick, HostingPlan
 from backend.app.marketplace import add_listing_audit_event, create_ownership_challenge
 from backend.app.ownership import verify_listing_ownership
 from backend.app.providers import DemoRegistrarProvider
+from backend.app.ownership_api import router as ownership_router
 
 app = FastAPI(title="DomHostify API", description="Domain discovery, hosting comparison, and domain marketplace API. Catalog entries currently use illustrative demo data, not live offers.", version="0.3.0")
 
