@@ -10,13 +10,15 @@
 7. Do not describe untested code as working or deployed code as live unless deployment was verified.
 
 ## Local workflow
-Exact commands will be finalized with the initial backend scaffold. The intended workflow is:
-1. Create a Python virtual environment.
-2. Install project dependencies.
-3. Configure local environment variables using placeholders from .env.example.
-4. Run tests.
-5. Start the API and verify its health endpoint.
-6. Check formatting/linting and CI.
+Use Python 3.11 or newer from the repository root.
+
+1. Create and activate a virtual environment.
+2. Install dependencies with `python -m pip install -r requirements.txt`.
+3. Copy .env.example to .env if needed; use real credentials only in your local environment.
+4. Run tests with `python -m pytest -q`.
+5. Start the API with `python -m uvicorn backend.app.main:app --reload`.
+6. Visit /docs on the local server to inspect API schemas.
+7. Check the GitHub Actions workflow after pushing changes.
 
 ## Change checklist
 - [ ] Scope matches the PRD.
