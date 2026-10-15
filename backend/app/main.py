@@ -7,11 +7,15 @@ import os
 import re
 from urllib.parse import urlparse
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
+from sqlalchemy import select
+from sqlalchemy.exc import OperationalError
+from sqlalchemy.orm import Session
 
+from backend.app.database import MarketplaceListing as DBMarketplaceListing, get_db
 from backend.app.providers import DemoRegistrarProvider
 
 app = FastAPI(
@@ -102,6 +106,16 @@ class MarketplaceListing(BaseModel):
     sale_type: str
     listing_status: str = "demo"
     data_status: str = "demo"
+
+
+class PersistentMarketplaceListing(BaseModel):
+    id: int
+    domain: str
+    asking_price: float = Field(ge=0)
+    currency: str
+    sale_type: str
+    listing_status: str
+    data_status: str = "database"
 
 
 DEMO_HOSTING_PLANS = [
@@ -272,3 +286,43 @@ def list_marketplace_listings(
     if max_price is not None:
         listings = [item for item in listings if item.asking_price <= max_price]
     return listings
+
+
+@app.get(
+    "/api/v1/marketplace/persistent-listings",
+    response_model=list[PersistentMarketplaceListing],
+    tags=["marketplace"],
+)
+def list_persistent_marketplace_listings(
+    q: str | None = Query(default=None, max_length=253),
+    max_price: float | None = Query(default=None, ge=0),
+    db: Session = Depends(get_db),
+) -> list[PersistentMarketplaceListing]:
+    """Return only explicitly active listings stored in the configured database."""
+    statement = select(DBMarketplaceListing).where(
+        DBMarketplaceListing.active.is_(True),
+        DBMarketplaceListing.listing_status == "active",
+    )
+    if q and q.strip():
+        statement = statement.where(DBMarketplaceListing.domain.ilike(f"%{q.strip()}%"))
+    if max_price is not None:
+        statement = statement.where(DBMarketplaceListing.asking_price <= max_price)
+    statement = statement.order_by(DBMarketplaceListing.created_at.desc())
+    try:
+        records = db.scalars(statement).all()
+    except OperationalError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Marketplace database is not initialized. Apply database migrations first.",
+        ) from exc
+    return [
+        PersistentMarketplaceListing(
+            id=record.id,
+            domain=record.domain,
+            asking_price=record.asking_price,
+            currency=record.currency,
+            sale_type=record.sale_type,
+            listing_status=record.listing_status,
+        )
+        for record in records
+    ]
