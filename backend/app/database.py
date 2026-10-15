@@ -71,6 +71,19 @@ class ListingAuditEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, server_default=func.now(), index=True)
 
 
+class OwnershipChallenge(Base):
+    __tablename__ = "ownership_challenges"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    listing_id: Mapped[int] = mapped_column(Integer, index=True)
+    method: Mapped[str] = mapped_column(String(30), default="dns_txt", server_default="dns_txt")
+    challenge_label: Mapped[str] = mapped_column(String(253))
+    token_hash: Mapped[str] = mapped_column(String(128))
+    status: Mapped[str] = mapped_column(String(30), default="pending", server_default="pending", index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, server_default=func.now())
+
+
 class AffiliateClick(Base):
     __tablename__ = "affiliate_clicks"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
