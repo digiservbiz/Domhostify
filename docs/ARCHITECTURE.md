@@ -1,6 +1,6 @@
 # Architecture
 
-- Status: Proposed baseline, subject to implementation evidence
+- Status: Baseline with registrar adapter contract implemented; broader modules remain proposed
 - Last updated: 2026-10-15
 
 ## 1. Principles
@@ -27,7 +27,7 @@
 - frontend/: planned web client after API contracts stabilize
 - PostgreSQL for persistent production data, with migrations when introduced.
 
-## 4. Provider adapter contract (planned)
+## 4. Provider adapter contract (partially implemented)
 Each adapter should return provider key/name, product type, requested domain or plan, availability status (available/unavailable/unknown/error), price and ISO currency where supplied, billing period, introductory/renewal/transfer distinctions, source reference where permitted, checked-at timestamp, freshness metadata, affiliate metadata, and structured errors.
 
 Never turn timeouts, missing data, or stale data into a positive availability claim.
