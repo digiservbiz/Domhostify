@@ -1,40 +1,43 @@
 # DomHostify — Project Status
 
 **Last updated:** 2026-10-15  
-**Current phase:** Phase 1 — Runnable API baseline  
-**Overall progress:** 20% (documentation and initial API scaffold committed; tests have not yet been executed)
+**Current phase:** Phase 2 — Domain and hosting comparison prototype  
+**Overall progress:** 28% (API input validation improved and a responsive browser prototype committed; tests/CI still require verification)
 
 ## Executive status
-The project documentation foundation is in place and the first FastAPI API scaffold has been committed. It currently provides health/readiness checks and explicitly demo-only endpoints for domain search, hosting plans, and aftermarket listings. No live registrar/hosting integrations, database, frontend, or production deployment exist yet.
+The repository now contains the product/engineering documentation, a FastAPI demo API, expanded domain validation tests, local CORS configuration, and a responsive HTML/JavaScript prototype that calls the API. The frontend and API are prototypes only. No live provider data, database, affiliate tracking, accounts, or production deployment is configured.
 
 ## Workstream tracker
 | Workstream | Status | Progress | Notes |
 |---|---|---:|---|
-| Product vision and scope | In progress | 80% | Product pillars and initial MVP requirements documented |
+| Product vision and scope | In progress | 80% | Core product pillars and MVP documented |
 | PRD and user journeys | In progress | 75% | Initial requirements and acceptance criteria drafted |
-| Architecture and data boundaries | In progress | 55% | Modular-monolith proposal and provider data contract documented |
-| Roadmap and project governance | In progress | 80% | Roadmap, decision log, contribution guide, status tracking created |
-| Security, privacy, compliance | In progress | 30% | Baseline safeguards documented; implementation and legal review remain |
-| API implementation | In progress | 25% | FastAPI scaffold and demo endpoints committed; not yet runtime-verified |
-| Database and migrations | Not started | 0% | No persistent schema yet |
-| Frontend | Not started | 0% | No UI yet |
-| Provider/affiliate integrations | Not started | 0% | No live provider integrations or affiliate approval verified |
-| Automated tests and CI | In progress | 20% | pytest cases and GitHub Actions workflow committed; execution result not yet checked |
+| Architecture and data boundaries | In progress | 60% | API/frontend boundary and demo-data trust rules documented |
+| Roadmap and project governance | In progress | 85% | Core project docs and status tracker maintained |
+| Security, privacy, compliance | In progress | 35% | Input validation and local CORS; broader controls remain |
+| API implementation | In progress | 40% | Health, domain search, hosting plans, listings, filters; not runtime-verified |
+| Database and migrations | Not started | 0% | No persistence yet |
+| Frontend | In progress | 25% | Responsive single-page prototype committed; no build/test verification yet |
+| Provider/affiliate integrations | Not started | 0% | No live provider integration or affiliate approval verified |
+| Automated tests and CI | In progress | 30% | Expanded pytest suite and workflow committed; execution result not verified |
 | Deployment and monitoring | Not started | 0% | No deployment verified |
 
 ## Verified repository deliverables
 - [x] README and project entry point
-- [x] PRD, architecture, roadmap, and decision log
-- [x] Status tracker, testing strategy, security guidance, contribution guide
-- [x] Python dependency list and environment example
+- [x] PRD, architecture, roadmap, decision log, status, testing, security, and contribution docs
+- [x] Python dependency list, environment example, and ignore rules
 - [x] FastAPI health and readiness endpoints
-- [x] Demo domain-search endpoint with availability explicitly set to unknown
-- [x] Demo hosting-plan endpoint with basic filtering
-- [x] Demo marketplace-listing endpoint with basic filtering
-- [x] Initial API tests and GitHub Actions CI workflow committed
+- [x] Domain search returns explicit unknown availability and demo source status
+- [x] Domain query normalization/validation helper and malformed-input tests committed
+- [x] Hosting-plan catalog endpoint and filters
+- [x] Marketplace listing endpoint and filters
+- [x] Responsive frontend prototype committed
+- [x] Local development CORS origins restricted to common localhost ports
+- [x] pytest suite and GitHub Actions workflow committed
 - [ ] Tests executed successfully
 - [ ] CI result verified
-- [ ] API started locally and endpoints smoke-tested
+- [ ] API and frontend smoke-tested together
+- [ ] Production origin configuration documented and tested
 
 ## Milestones
 - [x] M0.1 Confirm product direction and repository access.
@@ -42,26 +45,29 @@ The project documentation foundation is in place and the first FastAPI API scaff
 - [ ] M0.3 Finalize MVP acceptance criteria.
 - [x] M1.1 Commit API scaffold and health endpoint.
 - [x] M1.2 Commit automated tests and CI workflow.
-- [ ] M1.3 Verify tests and establish initial domain/provider/hosting data models.
-- [ ] M2.1 Implement richer comparison API and demo catalog.
-- [ ] M2.2 Build first usable comparison interface.
+- [x] M1.3 Commit domain validation and comparison endpoints.
+- [x] M2.1 Commit demo comparison APIs.
+- [x] M2.2 Commit first responsive comparison prototype.
+- [ ] M2.3 Run and verify API/frontend end-to-end.
 - [ ] M3.1 Add verified provider adapters.
 - [ ] M4.1 Expand marketplace listing foundations.
 - [ ] M5.1 Deploy a test environment and verify end-to-end.
 
 ## Current limitations
-- Search results are demo-only and do not check real registrar availability.
-- Hosting plans and marketplace listings are fictional illustrative records, not real offers.
-- No affiliate redirect endpoint exists yet; no affiliate clicks or commissions are tracked.
-- No database, account system, frontend, payment processing, domain transfer, or auction capability exists.
+- Domain search does not contact registrars; availability remains unknown.
+- Hosting plans and aftermarket listings are fictional illustrative records.
+- No affiliate redirect endpoint or commission tracking exists.
+- No database, accounts, seller dashboard, payments, transfer, or auctions exist.
+- Browser prototype assumes the API is running at http://127.0.0.1:8000.
 - CI workflow is committed but must run before its status can be claimed as passing.
+- CORS is configured for local development only; production origins must be configured deliberately.
 
 ## Next actions
-1. Verify GitHub Actions and fix any test/import issues.
-2. Add domain validation and robust response schemas.
-3. Define persistence models and migrations after the API contracts are reviewed.
-4. Build a frontend for domain search and hosting comparison.
-5. Research provider APIs and affiliate programs before enabling live data.
+1. Verify GitHub Actions and fix any failures.
+2. Smoke-test API endpoints and frontend together.
+3. Add persistent models and migrations for providers, registrar offers, hosting plans, and marketplace listings.
+4. Implement provider adapter contracts and a safe affiliate-click endpoint.
+5. Research registrar and hosting partner programs and data-access terms before live integration.
 
 ## Update discipline
 Update this file when milestones change. Progress must reflect verified deliverables, not effort estimates.
