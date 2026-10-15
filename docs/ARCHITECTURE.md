@@ -40,7 +40,8 @@ Use migrations for schema changes. Monetary values require decimal-safe storage 
 ## 6. Planned API areas
 - GET /health — liveness
 - GET /ready — readiness when dependencies exist
-- GET /api/v1/domains/search?q=... — clearly labelled demo results until a provider is connected
+- GET /api/v1/domains/search?q=... — clearly labelled demo results
+- GET /api/v1/domains/offers?domain=... — persisted registrar pricing records marked verified; no live provider check until a provider is connected
 - GET /api/v1/domains/offers?domain=... — persisted verified registrar pricing records; does not perform a live check
 - GET /api/v1/hosting/plans — filterable hosting catalog
 - GET /api/v1/marketplace/listings — demo aftermarket browse/search
