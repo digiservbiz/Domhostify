@@ -73,3 +73,7 @@ Select integrations based on access, commercial terms, region, price freshness, 
 4. Approval is rejected unless ownership is already marked verified; successful approval activates the listing and records an audit event.
 5. Rejection sets the listing inactive and non-public, also recording an audit event.
 6. DNS challenge generation exists internally, but live DNS lookup/verification is still pending. Never manually mark ownership verified in production without evidence from the verification service.
+
+
+## Ownership verification service boundary
+The repository now includes a validation helper that accepts TXT values obtained by a trusted resolver, checks the challenge status and expiry, compares the SHA-256 proof using constant-time comparison, and consumes a successful challenge exactly once. A successful proof marks the listing ownership as verified and appends an audit event. This helper is not itself a DNS resolver or a public endpoint; live resolver wiring and authenticated challenge/verification routes remain incomplete until tested.
