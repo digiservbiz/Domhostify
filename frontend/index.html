@@ -48,17 +48,19 @@
     </div>
   </section>
   <section class="wrap section" id="hosting-plans">
-    <div class="section-head"><div><h2>Hosting for your next chapter</h2><p>Illustrative sample plans for the first product prototype.</p></div><button class="btn" id="load-hosting" type="button">Load plans</button></div>
+    <div class="section-head"><div><h2>Hosting for your next chapter</h2><p>Verified database plans only; empty inventory is reported honestly.</p></div><button class="btn" id="load-hosting" type="button">Load plans</button></div>
     <div class="grid" id="hosting-results"><article class="card"><h3>Compare with confidence</h3><p>Plan features and renewal prices will be shown separately. Sample data is not a real provider offer.</p></article></div>
   </section>
   <section class="wrap section" id="marketplace-listings">
-    <div class="section-head"><div><h2>Premium domain marketplace</h2><p>Example listings show the shape of the marketplace experience.</p></div><button class="btn" id="load-listings" type="button">Load listings</button></div>
+    <div class="section-head"><div><h2>Premium domain marketplace</h2><p>Approved, ownership-verified database listings only.</p></div><button class="btn" id="load-listings" type="button">Load listings</button></div>
     <div class="grid" id="listing-results"><article class="card"><h3>Find a name with a head start</h3><p>Marketplace inventory will be connected in a later milestone. Current examples are fictional demo data.</p></article></div>
   </section>
 </main>
-<footer><div class="wrap foot"><div>© DomHostify · Your online business starts here.</div><div>Prototype only: prices and listings are demo data, not live offers.</div></div></footer>
+<footer><div class="wrap foot"><div>© DomHostify · Your online business starts here.</div><div>Domain availability is unverified until a live registrar adapter is configured. Marketplace checkout and transfer are not enabled.</div></div></footer>
 <script>
-const API_BASE = 'http://127.0.0.1:8000';
+// Override before this script with: window.DOMHOSTIFY_API_BASE = 'https://your-api.example';
+// Never place seller, buyer, or admin API tokens in this public frontend.
+const API_BASE = String(window.DOMHOSTIFY_API_BASE || 'http://127.0.0.1:8000').replace(/\\/$/, '');
 const escapeHtml = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const results = document.getElementById('domain-results');
 document.getElementById('domain-form').addEventListener('submit', async event => {
@@ -93,20 +95,28 @@ document.getElementById('load-hosting').addEventListener('click', async () => {
   const root = document.getElementById('hosting-results');
   root.innerHTML = '<article class="card"><p>Loading plans…</p></article>';
   try {
-    const response = await fetch(API_BASE + '/api/v1/hosting/plans');
+    const response = await fetch(API_BASE + '/api/v1/hosting/persistent-plans');
     const plans = await response.json();
-    if (!response.ok) throw new Error('Could not load plans');
-    root.innerHTML = plans.map(plan => '<article class="card"><span class="pill">DEMO DATA</span><h3>' + escapeHtml(plan.plan_name) + '</h3><p>' + escapeHtml(plan.provider) + ' · ' + escapeHtml(plan.site_type) + '</p><h3>€' + Number(plan.introductory_price).toFixed(2) + ' <small>/ ' + escapeHtml(plan.billing_period) + '</small></h3><p>Renewal: €' + Number(plan.renewal_price).toFixed(2) + ' / ' + escapeHtml(plan.billing_period) + '</p><p>' + escapeHtml(plan.storage) + '</p><p>' + escapeHtml(plan.support) + '</p></article>').join('');
+    if (!response.ok) throw new Error('Could not load verified database plans');
+    if (!Array.isArray(plans) || plans.length === 0) {
+      root.innerHTML = '<article class="card"><h3>No verified hosting plans yet</h3><p>This section only displays active database records with verified source status and known introductory pricing. Demo examples are intentionally not presented as real offers.</p></article>';
+      return;
+    }
+    root.innerHTML = plans.map(plan => '<article class="card"><span class="pill">' + escapeHtml(plan.source_status || 'database') + '</span><h3>' + escapeHtml(plan.plan_name) + '</h3><p>' + escapeHtml(plan.provider_key) + ' · ' + escapeHtml(plan.site_type) + '</p><h3>' + escapeHtml(plan.currency) + ' ' + Number(plan.introductory_price).toFixed(2) + ' <small>/ ' + escapeHtml(plan.billing_period) + '</small></h3><p>Renewal: ' + (plan.renewal_price == null ? 'Not provided' : escapeHtml(plan.currency) + ' ' + Number(plan.renewal_price).toFixed(2) + ' / ' + escapeHtml(plan.billing_period)) + '</p><p>' + escapeHtml(plan.storage) + '</p><p>' + escapeHtml(plan.support) + '</p><p class="notice">Database record; provider is not queried live.</p></article>').join('');
   } catch (error) { root.innerHTML = '<article class="card"><p>Could not reach the API. Start the backend and retry.</p></article>'; }
 });
 document.getElementById('load-listings').addEventListener('click', async () => {
   const root = document.getElementById('listing-results');
   root.innerHTML = '<article class="card"><p>Loading listings…</p></article>';
   try {
-    const response = await fetch(API_BASE + '/api/v1/marketplace/listings');
+    const response = await fetch(API_BASE + '/api/v1/marketplace/persistent-listings');
     const listings = await response.json();
-    if (!response.ok) throw new Error('Could not load listings');
-    root.innerHTML = listings.map(item => '<article class="card"><span class="pill">DEMO LISTING</span><h3>' + escapeHtml(item.domain) + '</h3><p>' + escapeHtml(item.sale_type.replace('_',' ')) + '</p><h3>€' + Number(item.asking_price).toLocaleString('en-IE',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</h3><p>Fictional sample listing — not available for purchase.</p></article>').join('');
+    if (!response.ok) throw new Error('Could not load approved marketplace listings');
+    if (!Array.isArray(listings) || listings.length === 0) {
+      root.innerHTML = '<article class="card"><h3>No approved listings yet</h3><p>Only active listings that have passed ownership verification and moderation are shown here. Demo examples are not mixed into real inventory.</p></article>';
+      return;
+    }
+    root.innerHTML = listings.map(item => '<article class="card"><span class="pill">' + escapeHtml(item.sale_type.replace('_',' ')) + '</span><h3>' + escapeHtml(item.domain) + '</h3><p>Ownership: ' + escapeHtml(item.ownership_status) + ' · Review: ' + escapeHtml(item.moderation_status) + '</p><h3>' + escapeHtml(item.currency) + ' ' + Number(item.asking_price).toLocaleString('en-IE',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</h3><p>Marketplace listing. Checkout and domain transfer are not enabled.</p></article>').join('');
   } catch (error) { root.innerHTML = '<article class="card"><p>Could not reach the API. Start the backend and retry.</p></article>'; }
 });
 </script>
