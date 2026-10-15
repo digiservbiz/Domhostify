@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-10-15  
 **Current phase:** Phase 2 — Domain and hosting comparison prototype  
-**Overall progress:** 43% (frontend suggestions, allowlisted affiliate redirects, SQLAlchemy models, initial Alembic migration, and configurable CORS committed; runtime tests/CI still require verification)
+**Overall progress:** 44% (frontend suggestions, allowlisted affiliate redirects, SQLAlchemy models, Alembic migration scaffolding, and configurable CORS committed; runtime tests/CI still require verification)
 
 ## Executive status
 The repository contains product/engineering documentation, a FastAPI demo API, domain validation tests, a responsive frontend, a registrar adapter contract, an allowlisted affiliate redirect foundation, and initial SQLAlchemy catalog models. Tests and CI have not yet been verified. Database models are not yet integrated into API endpoints, and there is no live provider data or production deployment.
@@ -31,7 +31,8 @@ The repository contains product/engineering documentation, a FastAPI demo API, d
 - [x] Domain extension suggestions endpoint and tests committed
 - [x] Allowlisted affiliate redirect endpoint with HTTPS validation and safety tests committed
 - [x] Initial SQLAlchemy registrar-offer and marketplace-listing models committed
-- [x] Alembic configuration and initial catalog migration committed
+- [x] Alembic configuration, revision template, and initial catalog migration committed
+- [x] README documents database initialization and deployment configuration
 - [x] Database model safety tests committed
 - [x] Registrar provider contract and safe demo adapter committed
 - [x] Provider adapter safety tests committed
