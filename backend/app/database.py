@@ -27,6 +27,23 @@ class RegistrarOffer(Base):
     checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+class HostingPlanRecord(Base):
+    __tablename__ = "hosting_plans"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    provider_key: Mapped[str] = mapped_column(String(80), index=True)
+    plan_name: Mapped[str] = mapped_column(String(120))
+    site_type: Mapped[str] = mapped_column(String(120))
+    introductory_price: Mapped[float | None] = mapped_column(Float, nullable=True)
+    renewal_price: Mapped[float | None] = mapped_column(Float, nullable=True)
+    currency: Mapped[str] = mapped_column(String(3), default="EUR", server_default="EUR")
+    billing_period: Mapped[str] = mapped_column(String(20), default="month", server_default="month")
+    storage: Mapped[str] = mapped_column(String(120))
+    support: Mapped[str] = mapped_column(String(120))
+    source_status: Mapped[str] = mapped_column(String(30), default="unverified", server_default="unverified")
+    checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    active: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false", index=True)
+
+
 class MarketplaceListing(Base):
     __tablename__ = "marketplace_listings"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
