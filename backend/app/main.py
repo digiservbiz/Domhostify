@@ -22,9 +22,11 @@ from backend.app.database import AffiliateClick as DBAffiliateClick, HostingPlan
 from backend.app.marketplace import add_listing_audit_event
 from backend.app.providers import DemoRegistrarProvider
 from backend.app.ownership_api import router as ownership_router
+from backend.app.transactions_api import router as transactions_router
 
 app = FastAPI(title="DomHostify API", description="Domain discovery, hosting comparison, and domain marketplace API. Catalog entries currently use illustrative demo data, not live offers.", version="0.3.0")
 app.include_router(ownership_router)
+app.include_router(transactions_router)
 
 app.add_middleware(
     CORSMiddleware,
