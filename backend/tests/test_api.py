@@ -96,3 +96,41 @@ def test_marketplace_price_filter() -> None:
     response = client.get("/api/v1/marketplace/listings", params={"max_price": 1000})
     assert response.status_code == 200
     assert all(item["asking_price"] <= 1000 for item in response.json())
+
+
+
+def test_domain_suggestions_returns_requested_extensions_as_unknown() -> None:
+    response = client.get(
+        "/api/v1/domains/suggestions",
+        params={"q": "mybrand", "extensions": "com,net,io"},
+    )
+    assert response.status_code == 200
+    results = response.json()
+    assert [item["domain"] for item in results] == [
+        "mybrand.com", "mybrand.net", "mybrand.io"
+    ]
+    assert all(item["availability"] == "unknown" for item in results)
+    assert all(item["source_status"] == "demo_only" for item in results)
+
+
+def test_domain_suggestions_removes_duplicate_extensions() -> None:
+    response = client.get(
+        "/api/v1/domains/suggestions",
+        params={"q": "mybrand", "extensions": "com,.com,net"},
+    )
+    assert response.status_code == 200
+    assert [item["domain"] for item in response.json()] == [
+        "mybrand.com", "mybrand.net"
+    ]
+
+
+def test_domain_suggestions_rejects_invalid_brand_or_extensions() -> None:
+    invalid_params = [
+        {"q": "https://mybrand.com", "extensions": "com"},
+        {"q": "brand_name", "extensions": "com"},
+        {"q": "mybrand", "extensions": "com,../admin"},
+        {"q": "mybrand", "extensions": ",".join(["com"] * 11)},
+    ]
+    for params in invalid_params:
+        response = client.get("/api/v1/domains/suggestions", params=params)
+        assert response.status_code == 422
