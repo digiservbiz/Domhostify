@@ -174,7 +174,7 @@ def test_buy_now_requires_sale_type_and_public_listing(monkeypatch):
         listing_id = _create_listing()
         response = client.post(
             f"/api/v1/marketplace/listings/{listing_id}/buy-now",
-            headers=BUYER_HEADERS,
+            headers={**BUYER_HEADERS, "Idempotency-Key": "missing-sale-type"},
         )
         assert response.status_code == 404
     finally:
