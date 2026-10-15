@@ -11,7 +11,10 @@
 - Use opaque affiliate click IDs and restrict reporting access.
 - Patch dependencies and scan them in CI when configured.
 - Require authentication/authorization before seller, admin, or transaction writes go live.
-- The current seller Bearer token is a bootstrap-only single identity; never share it across sellers. Seller inventory reads are scoped to the opaque reference derived from that token, but production needs real per-user identities, sessions, role checks, rotation, and abuse controls.
+- The current seller Bearer token is a bootstrap-only single identity; never share it across sellers.
+- Admin moderation uses a separate `DOMHOSTIFY_ADMIN_API_TOKEN`; it is disabled until configured and must never equal or be shared with the seller token.
+- Admin approval is blocked unless ownership is already marked `verified`; approval then sets the listing active and approved. Rejection forces the listing inactive and non-public. Both decisions append audit events.
+- Bootstrap tokens are temporary scaffolding, not substitutes for per-user identity, role-based access, token rotation, rate limiting, or abuse monitoring. Seller inventory reads are scoped to the opaque reference derived from that token, but production needs real per-user identities, sessions, role checks, rotation, and abuse controls.
 - Back up persistent data and test restoration before production launch.
 
 ## Trust and transparency
