@@ -3,7 +3,7 @@ import os
 from datetime import datetime, timezone
 
 from sqlalchemy import Boolean, DateTime, Float, Integer, String, create_engine, func
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
+from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
 
 def utc_now() -> datetime:
@@ -48,3 +48,12 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False
 def create_schema() -> None:
     """Create tables for local development; production should use migrations."""
     Base.metadata.create_all(bind=engine)
+
+
+def get_db():
+    """Yield a short-lived database session for read-only API dependencies."""
+    db: Session = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
