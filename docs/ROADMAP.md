@@ -37,7 +37,7 @@ Progress and blockers live in [status.md](../status.md). Dates are not committed
 - [x] Seller listing submission, edit/withdraw lifecycle, moderation gates, and DNS TXT ownership verification (runtime verification still pending).
 - [x] Transaction schema, append-only event log, and guarded state-machine foundation.
 - [x] Bootstrap-authenticated Make Offer submission, buyer offer history/cancellation, seller offer inventory, accept/reject decisions, and transaction audit events.
-- [x] Buy Now temporary reservation with atomic availability gate and buyer-scoped idempotency (payment and transfer still disabled).
+- [x] Buy Now temporary reservation with atomic availability gate, buyer-scoped idempotency, and admin expiry cleanup (payment and transfer still disabled).
 - [ ] Payment-backed Buy Now checkout, verified payment webhooks, and transfer procedures.
 - [ ] Transaction partner evaluation and secure transfer procedures.
 - [ ] Auctions after core workflows are tested.
