@@ -1,5 +1,9 @@
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
+from backend.app.database import Base, MarketplaceListing as DBMarketplaceListing, get_db
 from backend.app.main import app, normalize_domain_query
 
 client = TestClient(app)
@@ -164,3 +168,53 @@ def test_cors_does_not_allow_all_origins_by_default() -> None:
     cors = next(middleware for middleware in app.user_middleware if middleware.cls.__name__ == "CORSMiddleware")
     assert "*" not in cors.options["allow_origins"]
     assert "http://localhost:5173" in cors.options["allow_origins"]
+
+
+def test_persistent_marketplace_endpoint_returns_only_active_database_listings() -> None:
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(bind=engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+
+    with TestSession() as session:
+        session.add_all([
+            DBMarketplaceListing(
+                domain="activebrand.com", asking_price=500, currency="EUR",
+                sale_type="buy_now", listing_status="active", active=True,
+            ),
+            DBMarketplaceListing(
+                domain="draftbrand.com", asking_price=100, currency="EUR",
+                sale_type="buy_now", listing_status="draft", active=False,
+            ),
+            DBMarketplaceListing(
+                domain="inactiveflag.com", asking_price=200, currency="EUR",
+                sale_type="make_offer", listing_status="active", active=False,
+            ),
+        ])
+        session.commit()
+
+    def override_get_db():
+        with TestSession() as session:
+            yield session
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        response = client.get("/api/v1/marketplace/persistent-listings")
+        assert response.status_code == 200
+        results = response.json()
+        assert [item["domain"] for item in results] == ["activebrand.com"]
+        assert results[0]["data_status"] == "database"
+
+        filtered = client.get(
+            "/api/v1/marketplace/persistent-listings",
+            params={"max_price": 100},
+        )
+        assert filtered.status_code == 200
+        assert filtered.json() == []
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+        Base.metadata.drop_all(bind=engine)
+        engine.dispose()
