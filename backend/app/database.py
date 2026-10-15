@@ -52,7 +52,11 @@ class MarketplaceListing(Base):
     currency: Mapped[str] = mapped_column(String(3), default="EUR", server_default="EUR")
     sale_type: Mapped[str] = mapped_column(String(30), default="make_offer", server_default="make_offer")
     listing_status: Mapped[str] = mapped_column(String(30), default="draft", server_default="draft", index=True)
+    ownership_status: Mapped[str] = mapped_column(String(30), default="unverified", server_default="unverified", index=True)
+    moderation_status: Mapped[str] = mapped_column(String(30), default="pending", server_default="pending", index=True)
+    seller_ref: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, server_default=func.now())
     active: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
 
 
