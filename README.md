@@ -13,7 +13,7 @@ DomHostify helps people move from a business idea to an online presence: find a 
 6. Seller portfolio, listing management, pricing guidance, and analytics.
 
 ## Current delivery stage
-**Phase 0 — Product and engineering foundation.** The repository was essentially empty at kickoff. See [status.md](status.md), [PRD](docs/PRD.md), and [roadmap](docs/ROADMAP.md).
+**Phase 1 — Initial API baseline.** The API scaffold, demo endpoints, initial tests, and CI workflow are committed. Tests and runtime behavior have not yet been independently verified. See [status.md](status.md), [PRD](docs/PRD.md), and [roadmap](docs/ROADMAP.md).
 
 ## Project documentation
 - [Product requirements (PRD)](docs/PRD.md)
@@ -25,14 +25,23 @@ DomHostify helps people move from a business idea to an online presence: find a 
 - [Development guide](CONTRIBUTING.md)
 - [Architecture decision log](docs/DECISIONS.md)
 
-## Proposed initial stack
+## Stack
 - API: Python + FastAPI
-- Database: PostgreSQL with SQLAlchemy and Alembic migrations
-- Tests: pytest
-- Frontend: planned web client; choose and scaffold after API contracts stabilize
-- Deployment: container-ready, after local tests pass
+- Tests: pytest + FastAPI TestClient
+- CI: GitHub Actions
+- Planned persistence: PostgreSQL + SQLAlchemy/Alembic after data contracts stabilize
+- Planned frontend: responsive web client after API contracts stabilize
 
-These are proposed choices until validated during implementation. Keep secrets in environment variables; never commit credentials.
+## Run locally
+Use Python 3.11 or newer.
+
+1. Create and activate a virtual environment.
+2. Install dependencies: `python -m pip install -r requirements.txt`
+3. Start the API from the repository root: `python -m uvicorn backend.app.main:app --reload`
+4. Open `/docs` on the local server to explore the API.
+5. Run tests: `python -m pytest -q`
+
+The current domain, hosting, and marketplace records are illustrative demo data. The domain endpoint explicitly returns availability as unknown; it does not contact a registrar.
 
 ## Product principles
 - Distinguish verified live data from estimates, cached data, and demo data.
@@ -41,9 +50,6 @@ These are proposed choices until validated during implementation. Keep secrets i
 - Recommendations should reflect user requirements, not affiliate payout alone.
 - Never claim domain availability without a provider check.
 - Do not hold buyer funds ourselves in the MVP; payments, escrow, and transfers require additional security and compliance work.
-
-## Development
-Start with the PRD, roadmap, and [development guide](CONTRIBUTING.md). Exact local commands will be added with the runnable API scaffold.
 
 ## License
 No license has been selected. A public repository is not automatically open-source licensed.
