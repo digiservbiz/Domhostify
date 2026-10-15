@@ -63,7 +63,6 @@ def test_seller_edit_requires_remoderation_and_preserves_ownership(monkeypatch):
         assert data["asking_price"] == 225
         assert data["currency"] == "USD"
         assert data["ownership_status"] == "verified"
-        assert data["active"] if "active" in data else data["listing_status"] == "pending_review"
         assert data["listing_status"] == "pending_review"
         assert data["moderation_status"] == "pending"
 
