@@ -19,7 +19,7 @@ The repository contains product/engineering documentation, a FastAPI demo API, d
 | Database and migrations | In progress | 50% | SQLAlchemy models, Alembic migration, managed session dependency, and active-listing read endpoint committed; migration execution and runtime verification remain |
 | Frontend | In progress | 35% | Responsive prototype now calls extension suggestions for bare names and domain search for full domains; not smoke-tested |
 | Provider/affiliate integrations | In progress | 20% | Registrar adapter and allowlisted HTTPS affiliate redirect foundation; no live provider integration or affiliate approval verified |
-| Automated tests and CI | In progress | 40% | Added isolated SQLite API test for active-only persistent listing reads; execution result not verified |
+| Automated tests and CI | In progress | 40% | Added isolated SQLite tests for active-only persistent listing reads, price filtering, and safe 503 when schema is missing; execution result not verified |
 | Deployment and monitoring | Not started | 0% | No deployment verified |
 
 ## Verified repository deliverables
@@ -35,7 +35,7 @@ The repository contains product/engineering documentation, a FastAPI demo API, d
 - [x] README documents database initialization and deployment configuration
 - [x] Database model safety tests committed, including database-side defaults and nullable provider pricing
 - [x] Read-only persistent marketplace listing endpoint filters to active, published records
-- [x] Isolated SQLite API test covers active-only database listing reads and price filtering
+- [x] Isolated SQLite API tests cover active-only database listing reads, price filtering, and safe failure when schema is missing
 - [x] Registrar provider contract and safe demo adapter committed
 - [x] Provider adapter safety tests committed
 - [x] Provider integration requirements documented
