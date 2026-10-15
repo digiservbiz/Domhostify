@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-10-15  
 **Current phase:** Phase 2 — Domain and hosting comparison prototype  
-**Overall progress:** 41% (frontend suggestions, allowlisted affiliate redirects, initial SQLAlchemy models/tests, and configurable CORS committed; runtime tests/CI still require verification)
+**Overall progress:** 43% (frontend suggestions, allowlisted affiliate redirects, SQLAlchemy models, initial Alembic migration, and configurable CORS committed; runtime tests/CI still require verification)
 
 ## Executive status
 The repository contains product/engineering documentation, a FastAPI demo API, domain validation tests, a responsive frontend, a registrar adapter contract, an allowlisted affiliate redirect foundation, and initial SQLAlchemy catalog models. Tests and CI have not yet been verified. Database models are not yet integrated into API endpoints, and there is no live provider data or production deployment.
@@ -16,7 +16,7 @@ The repository contains product/engineering documentation, a FastAPI demo API, d
 | Roadmap and project governance | In progress | 85% | Core project docs and status tracker maintained |
 | Security, privacy, compliance | In progress | 45% | Input validation, configurable CORS origins, allowlisted provider keys, HTTPS-only affiliate destinations; rate limiting and broader controls remain |
 | API implementation | In progress | 55% | Health, domain search/suggestions, hosting plans, listings, and allowlisted affiliate redirects; not runtime-verified |
-| Database and migrations | In progress | 20% | SQLAlchemy models and session factory added; Alembic migrations and API integration remain |
+| Database and migrations | In progress | 40% | SQLAlchemy models, Alembic environment, and initial catalog migration committed; migration execution and API integration remain |
 | Frontend | In progress | 35% | Responsive prototype now calls extension suggestions for bare names and domain search for full domains; not smoke-tested |
 | Provider/affiliate integrations | In progress | 20% | Registrar adapter and allowlisted HTTPS affiliate redirect foundation; no live provider integration or affiliate approval verified |
 | Automated tests and CI | In progress | 35% | Added affiliate, database-model, and restrictive-CORS tests; execution result not verified |
@@ -31,6 +31,7 @@ The repository contains product/engineering documentation, a FastAPI demo API, d
 - [x] Domain extension suggestions endpoint and tests committed
 - [x] Allowlisted affiliate redirect endpoint with HTTPS validation and safety tests committed
 - [x] Initial SQLAlchemy registrar-offer and marketplace-listing models committed
+- [x] Alembic configuration and initial catalog migration committed
 - [x] Database model safety tests committed
 - [x] Registrar provider contract and safe demo adapter committed
 - [x] Provider adapter safety tests committed
@@ -74,7 +75,7 @@ The repository contains product/engineering documentation, a FastAPI demo API, d
 ## Next actions
 1. Verify GitHub Actions and fix any failures.
 2. Smoke-test API endpoints and frontend together.
-3. Add Alembic migrations and integrate database sessions into API endpoints.
+3. Run Alembic upgrade/downgrade verification and integrate database sessions into API endpoints.
 4. Add hosting-plan persistence and affiliate click tracking with privacy-conscious identifiers.
 5. Research registrar and hosting partner programs and data-access terms before live integration.
 
