@@ -30,7 +30,7 @@ DomHostify helps people move from a business idea to an online presence: find a 
 - Tests: pytest + FastAPI TestClient
 - CI: GitHub Actions
 - Frontend prototype: plain HTML/CSS/JavaScript in `frontend/index.html`
-- Persistence foundation: SQLAlchemy models and Alembic migration scaffolding (not yet wired into API endpoints)
+- Persistence: SQLAlchemy models and Alembic migration; read-only active marketplace listing endpoint now queries the database
 
 ## Run locally
 Use Python 3.11 or newer.
@@ -45,7 +45,7 @@ Use Python 3.11 or newer.
 
 The frontend expects the API at `http://127.0.0.1:8000`. CORS defaults to common localhost development origins. Set `CORS_ALLOWED_ORIGINS` to a comma-separated list of exact origins before deployment. Set `DATABASE_URL` to a managed PostgreSQL connection string when using a production database.
 
-Domain, hosting, and marketplace API responses are still illustrative demo data. The initial database migration creates registrar-offer and marketplace-listing tables, but API endpoints do not yet use them. Domain search explicitly returns availability as unknown and does not contact a registrar.
+Domain, hosting, and marketplace API responses are still illustrative demo data. The initial database migration creates registrar-offer and marketplace-listing tables. `GET /api/v1/marketplace/persistent-listings` reads only records explicitly marked active in the database; the existing `/api/v1/marketplace/listings` endpoint remains demo-only. Apply migrations before calling the persistent endpoint. Domain search explicitly returns availability as unknown and does not contact a registrar.
 
 ## Product principles
 - Distinguish verified live data from estimates, cached data, and demo data.
