@@ -3,12 +3,14 @@
 All catalog entries are illustrative demo data. Live provider adapters are not
 configured, so domain availability must remain unknown.
 """
+import hashlib
+import hmac
 import os
 import re
 import uuid
 from urllib.parse import urlparse
 
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
@@ -17,16 +19,17 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from backend.app.database import AffiliateClick as DBAffiliateClick, HostingPlanRecord as DBHostingPlan, MarketplaceListing as DBMarketplaceListing, RegistrarOffer as DBRegistrarOffer, get_db
+from backend.app.marketplace import add_listing_audit_event
 from backend.app.providers import DemoRegistrarProvider
 
-app = FastAPI(title="DomHostify API", description="Domain discovery, hosting comparison, and domain marketplace API. Catalog entries currently use illustrative demo data, not live offers.", version="0.2.0")
+app = FastAPI(title="DomHostify API", description="Domain discovery, hosting comparison, and domain marketplace API. Catalog entries currently use illustrative demo data, not live offers.", version="0.3.0")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[origin.strip() for origin in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5500,http://127.0.0.1:5500").split(",") if origin.strip()],
     allow_credentials=False,
-    allow_methods=["GET"],
-    allow_headers=["Content-Type"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 _LABEL_RE = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$")
@@ -95,6 +98,13 @@ class PersistentMarketplaceListing(BaseModel):
     data_status: str = "database"
 
 
+class SellerListingCreate(BaseModel):
+    domain: str = Field(min_length=3, max_length=253)
+    asking_price: float = Field(ge=0)
+    currency: str = Field(default="EUR", min_length=3, max_length=3)
+    sale_type: str = Field(default="make_offer", min_length=1, max_length=30)
+
+
 class PersistentHostingPlan(BaseModel):
     id: int
     provider_key: str
@@ -145,7 +155,7 @@ def ready() -> dict[str, str]:
 
 
 @app.get("/api/v1/domains/search", response_model=list[DomainSearchResult], tags=["domains"])
-def search_domains(q: str = Query(min_length=2, max_length=253, description="Domain name or candidate name")) -> list[DomainSearchResult]:
+def search_domains(q: str = Query(min_length=2, max_length=253)) -> list[DomainSearchResult]:
     try:
         candidate = normalize_domain_query(q)
     except ValueError as exc:
@@ -186,6 +196,19 @@ def _approved_affiliate_destination(provider_key: str) -> str | None:
     return destination
 
 
+def _require_seller_auth(authorization: str | None = Header(default=None)) -> str:
+    """Bootstrap seller boundary; disabled until a server-side token is configured."""
+    configured = os.getenv("DOMHOSTIFY_SELLER_API_TOKEN", "").strip()
+    if not configured:
+        raise HTTPException(status_code=503, detail="Seller authentication is not configured.")
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Bearer authentication required.")
+    supplied = authorization[7:].strip()
+    if not supplied or not hmac.compare_digest(supplied, configured):
+        raise HTTPException(status_code=401, detail="Invalid seller credentials.")
+    return hashlib.sha256(supplied.encode("utf-8")).hexdigest()[:32]
+
+
 @app.get("/api/v1/affiliate/{provider_key}", tags=["affiliate"])
 def affiliate_redirect(provider_key: str, db: Session = Depends(get_db)) -> RedirectResponse:
     normalized_key = provider_key.strip().lower()
@@ -200,6 +223,32 @@ def affiliate_redirect(provider_key: str, db: Session = Depends(get_db)) -> Redi
         db.rollback()
         raise HTTPException(status_code=503, detail="Affiliate tracking database is not initialized. Apply database migrations first.") from exc
     return RedirectResponse(url=destination, status_code=302)
+
+
+@app.post("/api/v1/marketplace/seller/listings", response_model=PersistentMarketplaceListing, status_code=201, tags=["marketplace"])
+def submit_seller_listing(payload: SellerListingCreate, seller_ref: str = Depends(_require_seller_auth), db: Session = Depends(get_db)) -> PersistentMarketplaceListing:
+    """Submit a seller listing into review; never auto-approves or verifies ownership."""
+    try:
+        domain = normalize_domain_query(payload.domain)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    currency = payload.currency.strip().upper()
+    if not re.fullmatch(r"[A-Z]{3}", currency):
+        raise HTTPException(status_code=422, detail="Currency must be a three-letter ISO-style code.")
+    sale_type = payload.sale_type.strip().lower()
+    if sale_type not in {"buy_now", "make_offer"}:
+        raise HTTPException(status_code=422, detail="Sale type must be buy_now or make_offer.")
+    listing = DBMarketplaceListing(domain=domain, asking_price=payload.asking_price, currency=currency, sale_type=sale_type, listing_status="pending_review", ownership_status="unverified", moderation_status="pending", seller_ref=seller_ref, active=False)
+    try:
+        db.add(listing)
+        db.flush()
+        add_listing_audit_event(db, listing_id=listing.id, event_type="seller_listing_submitted", actor_type="seller", actor_ref=seller_ref)
+        db.commit()
+        db.refresh(listing)
+    except OperationalError as exc:
+        db.rollback()
+        raise HTTPException(status_code=503, detail="Marketplace database is not initialized. Apply database migrations first.") from exc
+    return PersistentMarketplaceListing(id=listing.id, domain=listing.domain, asking_price=listing.asking_price, currency=listing.currency, sale_type=listing.sale_type, listing_status=listing.listing_status, ownership_status=listing.ownership_status, moderation_status=listing.moderation_status, updated_at=listing.updated_at.isoformat() if listing.updated_at else None)
 
 
 @app.get("/api/v1/hosting/plans", response_model=list[HostingPlan], tags=["hosting"])
@@ -254,7 +303,6 @@ def list_persistent_marketplace_listings(q: str | None = Query(default=None, max
 
 @app.get("/api/v1/marketplace/persistent-listings/{listing_id}", response_model=PersistentMarketplaceListing, tags=["marketplace"])
 def get_persistent_marketplace_listing(listing_id: int, db: Session = Depends(get_db)) -> PersistentMarketplaceListing:
-    """Return one publicly visible listing only after ownership and moderation approval."""
     statement = select(DBMarketplaceListing).where(DBMarketplaceListing.id == listing_id, DBMarketplaceListing.active.is_(True), DBMarketplaceListing.listing_status == "active", DBMarketplaceListing.ownership_status == "verified", DBMarketplaceListing.moderation_status == "approved")
     try:
         record = db.scalar(statement)
