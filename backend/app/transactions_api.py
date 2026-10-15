@@ -307,6 +307,15 @@ def cancel_buyer_offer(
             )
         except ValueError as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
+        if transaction.transaction_type == "buy_now":
+            db.execute(update(MarketplaceListing).where(
+                MarketplaceListing.id == transaction.listing_id,
+                MarketplaceListing.reservation_transaction_id == transaction.id,
+            ).values(
+                reservation_transaction_id=None,
+                reserved_until=None,
+                updated_at=utc_now(),
+            ))
         db.commit()
         db.refresh(transaction)
         return _offer_payload(transaction, listing.domain)
