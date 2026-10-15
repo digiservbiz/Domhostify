@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-10-15  
 **Current phase:** Phase 4 — Marketplace security foundation  
-**Overall progress:** 83% (seller listing lifecycle and authenticated make-offer submission/decision/cancellation are committed; GitHub Actions passes 49 tests; migration execution, real user accounts, payments, providers, and deployment remain outstanding)
+**Overall progress:** 85% (seller lifecycle and Make Offer API are committed; GitHub Actions passes 49 tests and clean-database Alembic upgrade/downgrade/upgrade is verified; real user accounts, payments, providers, and deployment remain outstanding)
 
 ## Executive status
 The marketplace now has fail-closed bootstrap boundaries for seller, buyer, and admin actions. Sellers can submit, edit, withdraw, verify ownership, and review offers; buyers can submit, inspect, and cancel make-offers. Offers are only accepted on publicly approved listings and every state change is audited. Opaque SHA-256-derived references are used, but the tokens still represent one bootstrap identity each—not real multi-user accounts.
@@ -16,10 +16,10 @@ The marketplace now has fail-closed bootstrap boundaries for seller, buyer, and 
 | Roadmap and project governance | In progress | 90% | Status and migration sequence maintained |
 | Security, privacy, compliance | In progress | 78% | Seller/admin bootstrap boundaries, hashed one-time DNS proof, bounded DNS lookup, audit trail; full auth/abuse controls remain |
 | API implementation | In progress | 96% | Seller lifecycle, DNS verification, admin moderation, and authenticated make-offer endpoints committed; runtime behavior covered by CI tests |
-| Database and migrations | In progress | 84% | Lifecycle, ownership, and transaction/event schemas plus migrations committed; clean-database upgrade/downgrade still unverified |
+| Database and migrations | In progress | 92% | Alembic clean-database upgrade → downgrade → upgrade passed in GitHub Actions; production database verification remains pending |
 | Frontend | In progress | 35% | Responsive comparison prototype; seller UI not connected |
 | Provider/affiliate integrations | In progress | 30% | Safe affiliate redirect foundation; no live provider access verified |
-| Automated tests and CI | In progress | 90% | GitHub Actions passed 49 tests on 2026-10-15 with one warning; migration/smoke verification remains pending |
+| Automated tests and CI | In progress | 93% | GitHub Actions passed migration round-trip and 49 tests on 2026-10-15; API/frontend smoke tests remain pending |
 | Deployment and monitoring | Not started | 0% | No deployment verified |
 
 ## Verified repository deliverables
@@ -54,7 +54,7 @@ The marketplace now has fail-closed bootstrap boundaries for seller, buyer, and 
 - [x] HTTPS-only allowlisted affiliate redirects with opaque click tracking
 - [x] Responsive frontend prototype
 - [x] Runtime pytest suite verified in GitHub Actions: 49 passed, 1 warning (2026-10-15)
-- [ ] Alembic upgrade/downgrade verified from a clean database
+- [x] Alembic clean-database upgrade → downgrade → upgrade verified in GitHub Actions (2026-10-15)
 - [x] GitHub Actions CI passed on transaction code: 45 passed, 1 warning (2026-10-15)
 - [ ] API/frontend smoke test verified
 - [ ] Full user/account authentication and authorization implemented
@@ -82,15 +82,15 @@ The marketplace now has fail-closed bootstrap boundaries for seller, buyer, and 
 - [x] M4.3 Ownership verification API committed; mocked DNS verification test passes, live DNS checks remain pending
 - [x] M4.3.1 Seller listing edit/withdraw lifecycle committed and CI-tested
 - [x] M5.0 Transaction schema, event log, and guarded state-machine foundation committed and CI-tested
-- [x] M5.1 Bootstrap-authenticated Make Offer API, buyer/seller offer views, decisions, cancellation, and audit trail (CI-tested)\n- [ ] M5.2 Buy Now, listing reservation, idempotency, payments, and transfer workflow
+- [x] M5.1 Bootstrap-authenticated Make Offer API, buyer/seller offer views, decisions, cancellation, and audit trail (CI-tested)
+- [ ] M5.2 Buy Now, listing reservation, idempotency, payments, and transfer workflow
 - [ ] M4.4 Moderation/admin workflow (bootstrap approve/reject exists; seller listing edit/withdraw now committed)
 - [ ] M5 Transaction workflows
 - [ ] M6 Live provider integrations
 - [ ] M7 Production staging and launch verification
 
 ## Current limitations
-- Runtime tests and Alembic migrations could not be executed from the current environment because external GitHub network access is unavailable to the execution container.
-- CI has not been verified as passing.
+- GitHub Actions is green: 49 tests passed with one warning, and Alembic clean-database upgrade → downgrade → upgrade succeeded. Local runtime access and live deployment are not verified.
 - The current seller token is a bootstrap server-side credential, not a complete multi-user account/session/role system.
 - Domain availability remains unknown because no live registrar is queried.
 - Hosting and aftermarket catalog records remain illustrative/database-supplied until verified feeds are connected.
@@ -100,11 +100,11 @@ The marketplace now has fail-closed bootstrap boundaries for seller, buyer, and 
 - Make-offer API endpoints are implemented using one bootstrap buyer token and one bootstrap seller token. They do not create a payment obligation, process payment, reserve a listing for checkout, or transfer a domain. Buy Now, payment webhooks, escrow, refunds, disputes, abuse prevention, and auctions remain unimplemented.
 
 ## Next actions
-1. Run the full test suite and verify the new DNS endpoint tests; confirm resolver behavior against a controlled DNS zone.
-2. Replace bootstrap seller/admin tokens with real account/session/role boundaries before production.
-3. Connect marketplace frontend to seller submission and public inventory.
-4. Verify migrations/tests/CI and add smoke coverage.
-5. Build transaction/payment/transfer abstractions, then live registrar/hosting integrations.
+1. Add API/frontend smoke tests and verify DNS TXT behavior against a controlled authoritative DNS zone.
+2. Replace bootstrap buyer/seller/admin tokens with real account/session/role boundaries before production.
+3. Connect marketplace frontend to seller management and Make Offer endpoints.
+4. Build Buy Now with atomic listing reservation and idempotency.
+5. Integrate verified payment webhooks and domain-transfer workflows, then live registrar/hosting providers.
 
 ## Update discipline
 Progress must reflect verified repository deliverables, not effort estimates. Never mark an external integration or runtime test as complete until it has actually been verified.
