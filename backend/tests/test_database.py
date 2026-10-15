@@ -5,6 +5,7 @@ def test_catalog_models_define_expected_tables() -> None:
     assert "registrar_offers" in Base.metadata.tables
     assert "marketplace_listings" in Base.metadata.tables
     assert "hosting_plans" in Base.metadata.tables
+    assert "listing_audit_events" in Base.metadata.tables
 
 
 def test_registrar_offer_availability_defaults_to_unknown() -> None:
@@ -16,6 +17,8 @@ def test_registrar_offer_availability_defaults_to_unknown() -> None:
 def test_marketplace_listing_defaults_to_inactive_draft() -> None:
     table = Base.metadata.tables["marketplace_listings"]
     assert table.c.listing_status.default.arg == "draft"
+    assert table.c.ownership_status.default.arg == "unverified"
+    assert table.c.moderation_status.default.arg == "pending"
     assert table.c.active.default.arg is False
     assert table.c.created_at.server_default is not None
 
@@ -26,10 +29,19 @@ def test_catalog_price_fields_are_nullable_until_provider_data_exists() -> None:
     assert table.c.renewal_price.nullable
 
 
-
 def test_hosting_plan_catalog_defaults_to_inactive_unverified() -> None:
     table = Base.metadata.tables["hosting_plans"]
     assert table.c.source_status.default.arg == "unverified"
     assert table.c.active.default.arg is False
     assert table.c.introductory_price.nullable
     assert table.c.renewal_price.nullable
+
+
+def test_listing_audit_event_is_opaque_and_personal-data_free_by_design() -> None:
+    table = Base.metadata.tables["listing_audit_events"]
+    assert table.c.listing_id.nullable is False
+    assert table.c.event_type.nullable is False
+    assert table.c.actor_ref.type.length == 64
+    assert table.c.event_note.type.length == 500
+    assert "ip_address" not in table.c
+    assert "user_agent" not in table.c
