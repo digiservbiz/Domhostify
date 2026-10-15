@@ -2,10 +2,10 @@
 
 **Last updated:** 2026-10-15  
 **Current phase:** Phase 4 — Marketplace security foundation  
-**Overall progress:** 67% (authenticated seller submission and inventory reads are committed; real account auth, DNS verification, moderation controls, runtime verification, live providers, transactions, and production deployment remain outstanding)
+**Overall progress:** 69% (seller submission/inventory and a fail-closed admin moderation workflow are committed; DNS verification, real account auth, runtime verification, live providers, transactions, and production deployment remain outstanding)
 
 ## Executive status
-The marketplace now has a bootstrap authentication boundary for seller writes and authenticated seller listing submission/inventory reads. Submissions are normalized, stored as `pending_review`, remain unverified/inactive, and create an audit event. Inventory reads filter by the opaque SHA-256-derived seller reference. The seller token is never stored directly. This is a bootstrap boundary, not yet a full user/account identity system.
+The marketplace now has separate fail-closed bootstrap boundaries for seller writes/inventory and admin moderation, plus authenticated seller listing submission/inventory reads. Submissions are normalized, stored as `pending_review`, remain unverified/inactive, and create an audit event. Inventory reads filter by the opaque SHA-256-derived seller reference. The seller token is never stored directly. This is a bootstrap boundary, not yet a full user/account identity system.
 
 ## Workstream tracker
 | Workstream | Status | Progress | Notes |
@@ -14,12 +14,12 @@ The marketplace now has a bootstrap authentication boundary for seller writes an
 | PRD and user journeys | In progress | 80% | Seller submission/review lifecycle now represented |
 | Architecture and data boundaries | In progress | 78% | Seller auth boundary and marketplace trust gates defined |
 | Roadmap and project governance | In progress | 90% | Status and migration sequence maintained |
-| Security, privacy, compliance | In progress | 70% | Authenticated seller boundary, visibility gates, audit foundation, hashed challenges; full auth/abuse/compliance remain |
-| API implementation | In progress | 86% | Public reads gated; authenticated seller submission and inventory reads implemented |
+| Security, privacy, compliance | In progress | 73% | Seller/admin bootstrap boundaries, visibility gates, audit foundation, hashed challenges; full auth/abuse/compliance remain |
+| API implementation | In progress | 88% | Public reads gated; seller submission/inventory and admin moderation implemented |
 | Database and migrations | In progress | 80% | Lifecycle, audit, and ownership-challenge storage committed; execution remains unverified |
 | Frontend | In progress | 35% | Responsive comparison prototype; seller UI not connected |
 | Provider/affiliate integrations | In progress | 30% | Safe affiliate redirect foundation; no live provider access verified |
-| Automated tests and CI | In progress | 67% | Seller submission and inventory authorization tests committed; runtime/CI result still unverified |
+| Automated tests and CI | In progress | 69% | Seller and admin API tests committed; runtime/CI result still unverified |
 | Deployment and monitoring | Not started | 0% | No deployment verified |
 
 ## Verified repository deliverables
@@ -40,6 +40,10 @@ The marketplace now has a bootstrap authentication boundary for seller writes an
 - [x] Seller API tests cover disabled auth, invalid credentials, review lifecycle, audit creation, and public invisibility
 - [x] Authenticated seller inventory endpoint filters records by seller reference
 - [x] Seller inventory tests cover missing authentication and cross-reference isolation
+- [x] Admin moderation boundary fails closed without a configured server-side token
+- [x] Admin approval refuses listings without verified ownership
+- [x] Admin approve/reject transitions append audit events and preserve public visibility gates
+- [x] Admin moderation tests cover unverified approval refusal, approval publication, and rejection privacy
 - [x] Domain validation/search/suggestion foundation
 - [x] Registrar and hosting persistent read catalogs
 - [x] HTTPS-only allowlisted affiliate redirects with opaque click tracking
@@ -53,7 +57,8 @@ The marketplace now has a bootstrap authentication boundary for seller writes an
 - [ ] Seller listing editing/deletion implemented
 - [ ] Real per-user seller identities implemented (current bootstrap token maps to one seller identity)
 - [ ] Seller dashboard implemented
-- [ ] Moderation/admin operations implemented
+- [ ] Full moderation/admin operations implemented
+- [x] Bootstrap admin review endpoint supports approve/reject with audit events
 - [ ] Buy Now / Make Offer transaction flow implemented
 - [ ] Payments/transfer workflow implemented
 - [ ] Auctions implemented
@@ -81,17 +86,16 @@ The marketplace now has a bootstrap authentication boundary for seller writes an
 - Domain availability remains unknown because no live registrar is queried.
 - Hosting and aftermarket catalog records remain illustrative/database-supplied until verified feeds are connected.
 - Ownership challenge generation exists as an internal helper only; DNS lookup/verification is not implemented.
-- Seller editing/deletion and admin moderation are not implemented.
+- Seller editing/deletion and full admin tooling are not implemented. A bootstrap approve/reject endpoint exists; it requires a separate admin token and refuses approval until ownership is marked verified.
 - Seller inventory currently uses a single configured bootstrap token; do not issue it to multiple sellers. A real account/session/role system is required for multi-seller production use.
 - Payments, transfers, abuse prevention, and auctions remain unimplemented.
 
 ## Next actions
 1. Implement DNS ownership verification against the stored challenge hash, including expiry/replay protection.
-2. Add authenticated admin/moderation operations with explicit state transitions and audit events.
-3. Replace bootstrap seller token with a real account/session/role boundary before multi-seller use.
-4. Connect marketplace frontend to seller submission and public inventory.
-5. Verify migrations/tests/CI and add smoke coverage.
-6. Build transaction/payment/transfer abstractions, then live registrar/hosting integrations.
+2. Replace bootstrap seller/admin tokens with real account/session/role boundaries before production.
+3. Connect marketplace frontend to seller submission and public inventory.
+4. Verify migrations/tests/CI and add smoke coverage.
+5. Build transaction/payment/transfer abstractions, then live registrar/hosting integrations.
 
 ## Update discipline
 Progress must reflect verified repository deliverables, not effort estimates. Never mark an external integration or runtime test as complete until it has actually been verified.
