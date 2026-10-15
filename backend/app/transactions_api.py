@@ -6,11 +6,12 @@ or perform transfers. Buyer/seller tokens are single-identity bootstrap credenti
 import hashlib
 import hmac
 import os
+from datetime import timedelta
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import or_, select, update
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
@@ -114,6 +115,87 @@ def create_offer(
         db.commit()
         db.refresh(transaction)
         return _offer_payload(transaction, listing.domain)
+    except OperationalError as exc:
+        db.rollback()
+        raise HTTPException(status_code=503, detail="Marketplace database is not initialized. Apply database migrations first.") from exc
+
+
+@router.post("/api/v1/marketplace/listings/{listing_id}/buy-now", status_code=201)
+def create_buy_now_intent(
+    listing_id: int,
+    buyer_ref: str = Depends(_require_buyer_auth),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Create a ten-minute reservation intent; no payment is collected."""
+    now = utc_now()
+    expires_at = now + timedelta(minutes=10)
+    try:
+        listing = db.scalar(select(MarketplaceListing).where(
+            MarketplaceListing.id == listing_id,
+            MarketplaceListing.active.is_(True),
+            MarketplaceListing.listing_status == "active",
+            MarketplaceListing.ownership_status == "verified",
+            MarketplaceListing.moderation_status == "approved",
+            MarketplaceListing.sale_type == "buy_now",
+        ))
+        if listing is None:
+            raise HTTPException(status_code=404, detail="Buy Now listing not found.")
+        if not listing.seller_ref:
+            raise HTTPException(status_code=409, detail="Listing seller identity is unavailable.")
+        if hmac.compare_digest(buyer_ref, listing.seller_ref):
+            raise HTTPException(status_code=409, detail="Sellers cannot purchase their own listings.")
+
+        transaction = MarketplaceTransaction(
+            listing_id=listing.id,
+            buyer_ref=buyer_ref,
+            seller_ref=listing.seller_ref,
+            transaction_type="buy_now",
+            amount=Decimal(str(listing.asking_price)).quantize(Decimal("0.01")),
+            currency=listing.currency,
+            status="buy_now_pending",
+            expires_at=expires_at,
+        )
+        db.add(transaction)
+        db.flush()
+
+        # A conditional UPDATE is the atomic gate: only one concurrent buyer can
+        # reserve a currently available or expired reservation.
+        reserved = db.execute(update(MarketplaceListing).where(
+            MarketplaceListing.id == listing.id,
+            MarketplaceListing.active.is_(True),
+            MarketplaceListing.listing_status == "active",
+            MarketplaceListing.ownership_status == "verified",
+            MarketplaceListing.moderation_status == "approved",
+            MarketplaceListing.sale_type == "buy_now",
+            or_(
+                MarketplaceListing.reserved_until.is_(None),
+                MarketplaceListing.reserved_until <= now,
+            ),
+        ).values(
+            reservation_transaction_id=transaction.id,
+            reserved_until=expires_at,
+            updated_at=now,
+        ))
+        if reserved.rowcount != 1:
+            db.rollback()
+            raise HTTPException(status_code=409, detail="This domain is already reserved for checkout.")
+        db.add(MarketplaceTransactionEvent(
+            transaction_id=transaction.id,
+            event_type="transaction_buy_now_pending",
+            from_status=None,
+            to_status="buy_now_pending",
+            actor_type="buyer",
+            actor_ref=buyer_ref,
+            event_note="Temporary Buy Now reservation created; payment not collected",
+        ))
+        db.commit()
+        db.refresh(transaction)
+        return {
+            **_offer_payload(transaction, listing.domain),
+            "reservation_expires_at": expires_at.isoformat(),
+            "payment_status": "not_started",
+            "message": "Reservation created. No payment has been taken.",
+        }
     except OperationalError as exc:
         db.rollback()
         raise HTTPException(status_code=503, detail="Marketplace database is not initialized. Apply database migrations first.") from exc
