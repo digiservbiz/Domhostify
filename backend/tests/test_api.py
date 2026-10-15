@@ -134,3 +134,27 @@ def test_domain_suggestions_rejects_invalid_brand_or_extensions() -> None:
     for params in invalid_params:
         response = client.get("/api/v1/domains/suggestions", params=params)
         assert response.status_code == 422
+
+
+def test_affiliate_redirect_rejects_unknown_provider() -> None:
+    response = client.get("/api/v1/affiliate/unknown", follow_redirects=False)
+    assert response.status_code == 404
+
+
+def test_affiliate_redirect_requires_configured_destination(monkeypatch) -> None:
+    monkeypatch.delenv("AFFILIATE_URL_EXAMPLEHOST", raising=False)
+    response = client.get("/api/v1/affiliate/examplehost", follow_redirects=False)
+    assert response.status_code == 503
+
+
+def test_affiliate_redirect_only_accepts_https_destination(monkeypatch) -> None:
+    monkeypatch.setenv("AFFILIATE_URL_EXAMPLEHOST", "http://unsafe.example/offer")
+    response = client.get("/api/v1/affiliate/examplehost", follow_redirects=False)
+    assert response.status_code == 503
+
+
+def test_affiliate_redirect_uses_allowlisted_configured_destination(monkeypatch) -> None:
+    monkeypatch.setenv("AFFILIATE_URL_EXAMPLEHOST", "https://partner.example/offer?ref=domhostify")
+    response = client.get("/api/v1/affiliate/examplehost", follow_redirects=False)
+    assert response.status_code == 302
+    assert response.headers["location"] == "https://partner.example/offer?ref=domhostify"
