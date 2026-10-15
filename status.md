@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-10-15  
 **Current phase:** Phase 4 — Marketplace security foundation  
-**Overall progress:** 86% (Buy Now now creates a time-limited atomic listing reservation; cancellation releases it; GitHub Actions passes 51 tests; payment, real accounts, providers, and deployment remain outstanding)
+**Overall progress:** 87% (Buy Now reservations now have buyer-scoped idempotency keys; same-key retries return the same active reservation; GitHub Actions passes 53 tests; payment, real accounts, providers, and deployment remain outstanding)
 
 ## Executive status
 The marketplace now has fail-closed bootstrap boundaries for seller, buyer, and admin actions. Sellers can submit, edit, withdraw, verify ownership, and review offers; buyers can submit, inspect, and cancel make-offers. Offers are only accepted on publicly approved listings and every state change is audited. Opaque SHA-256-derived references are used, but the tokens still represent one bootstrap identity each—not real multi-user accounts.
@@ -15,11 +15,11 @@ The marketplace now has fail-closed bootstrap boundaries for seller, buyer, and 
 | Architecture and data boundaries | In progress | 78% | Seller auth boundary and marketplace trust gates defined |
 | Roadmap and project governance | In progress | 90% | Status and migration sequence maintained |
 | Security, privacy, compliance | In progress | 78% | Seller/admin bootstrap boundaries, hashed one-time DNS proof, bounded DNS lookup, audit trail; full auth/abuse controls remain |
-| API implementation | In progress | 97% | Seller lifecycle, DNS verification, admin moderation, Make Offer, and expiring Buy Now reservation endpoints are CI-tested |
-| Database and migrations | In progress | 95% | Migration `0008_listing_reservations` is included in the passing clean-database round-trip; production database verification remains pending |
+| API implementation | In progress | 97% | Seller lifecycle, DNS verification, admin moderation, Make Offer, atomic Buy Now reservations, and idempotent retry behavior are CI-tested |
+| Database and migrations | In progress | 96% | Migrations `0008_listing_reservations` and `0009_transaction_idempotency` pass the clean-database round-trip; production database verification remains pending |
 | Frontend | In progress | 35% | Responsive comparison prototype; seller UI not connected |
 | Provider/affiliate integrations | In progress | 30% | Safe affiliate redirect foundation; no live provider access verified |
-| Automated tests and CI | In progress | 95% | GitHub Actions passed migration round-trip and 51 tests on 2026-10-15 with one warning; API/frontend smoke tests remain pending |
+| Automated tests and CI | In progress | 96% | GitHub Actions passed migration round-trip and 53 tests on 2026-10-15 with one warning; API/frontend smoke tests remain pending |
 | Deployment and monitoring | Not started | 0% | No deployment verified |
 
 ## Verified repository deliverables
@@ -32,6 +32,8 @@ The marketplace now has fail-closed bootstrap boundaries for seller, buyer, and 
 - [x] Ownership challenge migration `0006_ownership_challenges.py`
 - [x] Transaction state and append-only event models plus migration `0007_marketplace_transactions.py`
 - [x] Buy Now listing reservation fields and migration `0008_listing_reservations.py`
+- [x] Buyer-scoped idempotency key and unique index migration `0009_transaction_idempotency.py`
+- [x] Buy Now requires `Idempotency-Key`; retrying the same request returns the same active reservation instead of creating a duplicate
 - [x] Buy Now intent endpoint atomically reserves a public Buy Now listing for ten minutes; no payment is collected
 - [x] Buyer cancellation releases the matching reservation; CI tests confirm a second intent is blocked until release
 - [x] Guarded transaction state-machine helper with allowed-transition checks and event recording
@@ -56,7 +58,7 @@ The marketplace now has fail-closed bootstrap boundaries for seller, buyer, and 
 - [x] Registrar and hosting persistent read catalogs
 - [x] HTTPS-only allowlisted affiliate redirects with opaque click tracking
 - [x] Responsive frontend prototype
-- [x] Runtime pytest suite verified in GitHub Actions: 51 passed, 1 warning (2026-10-15)
+- [x] Runtime pytest suite verified in GitHub Actions: 53 passed, 1 warning (2026-10-15)
 - [x] Alembic clean-database upgrade → downgrade → upgrade verified in GitHub Actions (2026-10-15)
 - [x] GitHub Actions CI passed on Buy Now reservation code: 51 passed, 1 warning (2026-10-15)
 - [ ] API/frontend smoke test verified
@@ -68,8 +70,8 @@ The marketplace now has fail-closed bootstrap boundaries for seller, buyer, and 
 - [ ] Full moderation/admin operations implemented
 - [x] Bootstrap admin review endpoint supports approve/reject with audit events
 - [x] Bootstrap-authenticated Make Offer submission, buyer offer history/cancellation, seller offer inventory, accept/reject decisions, and transaction audit events committed and CI-tested
-- [x] Temporary Buy Now reservation and release lifecycle implemented and CI-tested
-- [ ] Payment-backed Buy Now checkout, idempotency, and real multi-user buyer/seller authorization implemented
+- [x] Temporary Buy Now reservation, cancellation release, and buyer-scoped idempotency implemented and CI-tested
+- [ ] Payment-backed Buy Now checkout and real multi-user buyer/seller authorization implemented
 - [ ] Payments/transfer workflow implemented
 - [ ] Auctions implemented
 - [ ] Live registrar/hosting provider integrations verified
