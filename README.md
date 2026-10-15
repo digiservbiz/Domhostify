@@ -30,7 +30,7 @@ DomHostify helps people move from a business idea to an online presence: find a 
 - Tests: pytest + FastAPI TestClient
 - CI: GitHub Actions
 - Frontend prototype: plain HTML/CSS/JavaScript in `frontend/index.html`
-- Planned persistence: PostgreSQL + SQLAlchemy/Alembic after data contracts stabilize
+- Persistence foundation: SQLAlchemy models and Alembic migration scaffolding (not yet wired into API endpoints)
 
 ## Run locally
 Use Python 3.11 or newer.
@@ -40,11 +40,12 @@ Use Python 3.11 or newer.
 3. Start the API from the repository root: `python -m uvicorn backend.app.main:app --reload`
 4. Open `http://127.0.0.1:8000/docs` to explore the API.
 5. Serve `frontend/index.html` using a local static server on port 5500 or 5173, or open it directly if your browser allows local fetches.
-6. Run tests: `python -m pytest -q`
+6. Initialize the local database schema: `python -m alembic upgrade head`
+7. Run tests: `python -m pytest -q`
 
-The frontend expects the API at `http://127.0.0.1:8000`. CORS currently permits common localhost development origins only. Update this intentionally before deployment.
+The frontend expects the API at `http://127.0.0.1:8000`. CORS defaults to common localhost development origins. Set `CORS_ALLOWED_ORIGINS` to a comma-separated list of exact origins before deployment. Set `DATABASE_URL` to a managed PostgreSQL connection string when using a production database.
 
-Domain, hosting, and marketplace records are illustrative demo data. Domain search explicitly returns availability as unknown and does not contact a registrar.
+Domain, hosting, and marketplace API responses are still illustrative demo data. The initial database migration creates registrar-offer and marketplace-listing tables, but API endpoints do not yet use them. Domain search explicitly returns availability as unknown and does not contact a registrar.
 
 ## Product principles
 - Distinguish verified live data from estimates, cached data, and demo data.
