@@ -30,7 +30,7 @@ DomHostify helps people move from a business idea to an online presence: find a 
 - Tests: pytest + FastAPI TestClient
 - CI: GitHub Actions
 - Frontend prototype: plain HTML/CSS/JavaScript in `frontend/index.html`
-- Persistence: SQLAlchemy models and Alembic migration; read-only active marketplace listing endpoint now queries the database
+- Persistence: SQLAlchemy models and sequential Alembic migrations for registrar offers, hosting plans, and marketplace listings
 
 ## Run locally
 Use Python 3.11 or newer.
@@ -45,7 +45,7 @@ Use Python 3.11 or newer.
 
 The frontend expects the API at `http://127.0.0.1:8000`. CORS defaults to common localhost development origins. Set `CORS_ALLOWED_ORIGINS` to a comma-separated list of exact origins before deployment. Set `DATABASE_URL` to a managed PostgreSQL connection string when using a production database.
 
-Domain, hosting, and marketplace API responses are still illustrative demo data. The initial database migration creates registrar-offer and marketplace-listing tables. `GET /api/v1/marketplace/persistent-listings` reads only records explicitly marked active in the database; `GET /api/v1/domains/offers?domain=example.com` reads only stored registrar records marked verified with a registration price. Neither endpoint contacts a provider live. The existing `/api/v1/marketplace/listings` endpoint remains demo-only. Apply migrations before calling the persistent endpoint. Domain search explicitly returns availability as unknown and does not contact a registrar.
+Domain, hosting, and marketplace API responses are still illustrative demo data. Database migrations create registrar-offer, hosting-plan, and marketplace-listing tables. `GET /api/v1/marketplace/persistent-listings` reads only records explicitly marked active; `GET /api/v1/domains/offers?domain=example.com` reads stored registrar records marked verified with a registration price; and `GET /api/v1/hosting/persistent-plans` reads only active hosting plans marked verified with a known introductory price. These endpoints read the database and do not contact providers live. The existing `/api/v1/hosting/plans` and `/api/v1/marketplace/listings` endpoints remain illustrative demo data. Apply migrations before calling persistent endpoints. Domain search explicitly returns availability as unknown and does not contact a registrar.
 
 ## Product principles
 - Distinguish verified live data from estimates, cached data, and demo data.
