@@ -36,7 +36,7 @@ class MarketplaceListing(Base):
     sale_type: Mapped[str] = mapped_column(String(30), default="make_offer", server_default="make_offer")
     listing_status: Mapped[str] = mapped_column(String(30), default="draft", server_default="draft", index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, server_default=func.now())
-    active: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    active: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
 
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./domhostify.db")
