@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-10-15  
 **Current phase:** Phase 2 — Domain and hosting comparison prototype  
-**Overall progress:** 44% (frontend suggestions, allowlisted affiliate redirects, SQLAlchemy models, Alembic migration scaffolding, and configurable CORS committed; runtime tests/CI still require verification)
+**Overall progress:** 45% (catalog persistence foundation hardened with database-side defaults; runtime tests/CI and API integration still require verification)
 
 ## Executive status
 The repository contains product/engineering documentation, a FastAPI demo API, domain validation tests, a responsive frontend, a registrar adapter contract, an allowlisted affiliate redirect foundation, and initial SQLAlchemy catalog models. Tests and CI have not yet been verified. Database models are not yet integrated into API endpoints, and there is no live provider data or production deployment.
@@ -33,7 +33,7 @@ The repository contains product/engineering documentation, a FastAPI demo API, d
 - [x] Initial SQLAlchemy registrar-offer and marketplace-listing models committed
 - [x] Alembic configuration, revision template, and initial catalog migration committed
 - [x] README documents database initialization and deployment configuration
-- [x] Database model safety tests committed
+- [x] Database model safety tests committed, including database-side defaults and nullable provider pricing
 - [x] Registrar provider contract and safe demo adapter committed
 - [x] Provider adapter safety tests committed
 - [x] Provider integration requirements documented
@@ -65,6 +65,7 @@ The repository contains product/engineering documentation, a FastAPI demo API, d
 - [ ] M5.1 Deploy a test environment and verify end-to-end.
 
 ## Current limitations
+- Runtime tests and Alembic migrations have not been executed in this work session; database-side defaults are covered by committed metadata assertions but remain unverified in a live database.
 - Domain search does not contact registrars; availability remains unknown.
 - Hosting plans and aftermarket listings are fictional illustrative records.
 - Affiliate redirect endpoint supports only configured allowlisted providers and HTTPS destinations; click tracking persistence is not wired.
@@ -76,7 +77,7 @@ The repository contains product/engineering documentation, a FastAPI demo API, d
 ## Next actions
 1. Verify GitHub Actions and fix any failures.
 2. Smoke-test API endpoints and frontend together.
-3. Run Alembic upgrade/downgrade verification and integrate database sessions into API endpoints.
+3. Run Alembic upgrade/downgrade verification and integrate database sessions into API endpoints. Initial migration now supplies a database-side timestamp default for marketplace listings.
 4. Add hosting-plan persistence and affiliate click tracking with privacy-conscious identifiers.
 5. Research registrar and hosting partner programs and data-access terms before live integration.
 
