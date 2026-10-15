@@ -27,7 +27,14 @@ app = FastAPI(
 # must be explicitly configured before deployment.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5500", "http://127.0.0.1:5500"],
+    allow_origins=[
+        origin.strip()
+        for origin in os.getenv(
+            "CORS_ALLOWED_ORIGINS",
+            "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5500,http://127.0.0.1:5500",
+        ).split(",")
+        if origin.strip()
+    ],
     allow_credentials=False,
     allow_methods=["GET"],
     allow_headers=["Content-Type"],
