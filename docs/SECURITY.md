@@ -12,6 +12,9 @@
 - Patch dependencies and scan them in CI when configured.
 - Require authentication/authorization before seller, admin, or transaction writes go live.
 - The current seller Bearer token is a bootstrap-only single identity; never share it across sellers.
+- Seller ownership challenge routes require the seller token and listing ownership by the derived seller reference; challenge tokens are stored as SHA-256 hashes and returned only at challenge creation.
+- DNS TXT verification uses a bounded 4-second resolver lifetime, avoids logging TXT values, expires challenges after 30 minutes, and leaves verified listings unpublished until admin moderation.
+- The DNS flow is committed but has not yet been runtime-tested or verified against a live authoritative DNS zone.
 - Admin moderation uses a separate `DOMHOSTIFY_ADMIN_API_TOKEN`; it is disabled until configured and must never equal or be shared with the seller token.
 - Admin approval is blocked unless ownership is already marked `verified`; approval then sets the listing active and approved. Rejection forces the listing inactive and non-public. Both decisions append audit events.
 - Bootstrap tokens are temporary scaffolding, not substitutes for per-user identity, role-based access, token rotation, rate limiting, or abuse monitoring. Seller inventory reads are scoped to the opaque reference derived from that token, but production needs real per-user identities, sessions, role checks, rotation, and abuse controls.
