@@ -6,6 +6,7 @@ def test_catalog_models_define_expected_tables() -> None:
     assert "marketplace_listings" in Base.metadata.tables
     assert "hosting_plans" in Base.metadata.tables
     assert "listing_audit_events" in Base.metadata.tables
+    assert "ownership_challenges" in Base.metadata.tables
 
 
 def test_registrar_offer_availability_defaults_to_unknown() -> None:
@@ -37,7 +38,7 @@ def test_hosting_plan_catalog_defaults_to_inactive_unverified() -> None:
     assert table.c.renewal_price.nullable
 
 
-def test_listing_audit_event_is_opaque_and_personal-data_free_by_design() -> None:
+def test_listing_audit_event_is_opaque_and_personal_data_free_by_design() -> None:
     table = Base.metadata.tables["listing_audit_events"]
     assert table.c.listing_id.nullable is False
     assert table.c.event_type.nullable is False
@@ -45,3 +46,12 @@ def test_listing_audit_event_is_opaque_and_personal-data_free_by_design() -> Non
     assert table.c.event_note.type.length == 500
     assert "ip_address" not in table.c
     assert "user_agent" not in table.c
+
+
+def test_ownership_challenge_stores_only_a_token_hash() -> None:
+    table = Base.metadata.tables["ownership_challenges"]
+    assert table.c.method.default.arg == "dns_txt"
+    assert table.c.status.default.arg == "pending"
+    assert table.c.token_hash.type.length == 128
+    assert "token" not in table.c
+    assert table.c.expires_at.nullable is False
