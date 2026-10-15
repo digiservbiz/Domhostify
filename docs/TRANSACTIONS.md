@@ -12,6 +12,7 @@ This document records the transaction boundary currently implemented in code.
 - Migration `0008_listing_reservations.py` adds `reservation_transaction_id` and `reserved_until` to listings.
 - Migration `0009_transaction_idempotency.py` adds a nullable buyer-scoped idempotency key with a unique index.
 - Buy Now requires an `Idempotency-Key` header. Replaying the same key for the same active reservation returns that reservation; reusing it for another listing or a closed/expired reservation returns a conflict.
+- Admin-authenticated `POST /api/v1/admin/marketplace/reservations/expire` cancels stale unpaid Buy Now intents, clears matching listing holds, and records transaction events. It can be invoked by a scheduled job; scheduling and monitoring are not yet configured.
 - Buy Now intents use a conditional database `UPDATE` as the atomic reservation gate. The reservation lasts ten minutes, blocks competing intents, and is released when the buyer cancels that intent.
 
 ## State machine
@@ -29,7 +30,7 @@ Amounts use decimal database precision. The transaction records contain no card 
 ## Before launch
 
 1. Replace bootstrap buyer/seller tokens with real account/session/role authorization and add stronger buyer/seller abuse controls.
-2. Extend reservation/concurrency testing on the production database engine and implement explicit expiry recovery/cleanup.
+2. Extend reservation/concurrency testing on the production database engine and wire the admin expiry endpoint to a monitored scheduled job.
 3. Add idempotency keys and provider webhook signature/replay checks.
 4. Integrate an approved payment provider and define refunds, disputes, chargebacks, and reconciliation.
 5. Define domain-transfer steps, timeout handling, manual review, and completion evidence.
