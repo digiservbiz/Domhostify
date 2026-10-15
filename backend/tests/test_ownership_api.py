@@ -61,9 +61,15 @@ def test_dns_ownership_challenge_and_verification(monkeypatch):
         class FakeTXT:
             strings = (challenge_data["record_value"].encode("utf-8"),)
 
+        class FakeAnswer:
+            rrset = True
+
+            def __iter__(self):
+                return iter([FakeTXT()])
+
         monkeypatch.setattr(
             "backend.app.ownership_api.dns.resolver.resolve",
-            lambda *args, **kwargs: [FakeTXT()],
+            lambda *args, **kwargs: FakeAnswer(),
         )
         verify_response = client.post(
             f"/api/v1/marketplace/seller/listings/{listing_id}/verify-ownership",
