@@ -1,87 +1,84 @@
 # DomHostify — Project Status
 
 **Last updated:** 2026-10-15  
-**Current phase:** Phase 2 — Domain and hosting comparison prototype  
-**Overall progress:** 56% (persistent marketplace visibility now requires ownership and moderation approval, with a listing-detail endpoint and isolated lifecycle tests; runtime tests/CI still require verification)
+**Current phase:** Phase 4 — Marketplace security foundation  
+**Overall progress:** 61% (marketplace lifecycle gates, audit events, ownership-challenge storage, and security helpers are now committed; runtime execution, CI verification, live providers, authentication, and production deployment remain outstanding)
 
 ## Executive status
-The repository contains product/engineering documentation, a FastAPI demo API, domain validation tests, a responsive frontend, a registrar adapter contract, an allowlisted affiliate redirect foundation, persistent SQLAlchemy catalog models, privacy-conscious affiliate click tracking, and marketplace lifecycle metadata. Tests and CI have not yet been verified. Persistent catalog endpoints remain database reads only; listing creation/authentication, live provider checks, and production deployment remain unimplemented.
+The repository now has a stronger marketplace foundation: public inventory requires verified ownership and approved moderation, lifecycle events can be audited without request fingerprint data, and ownership challenges persist only token hashes. Seller write routes remain disabled until authentication/authorization and real ownership verification integrations exist.
 
 ## Workstream tracker
 | Workstream | Status | Progress | Notes |
 |---|---|---:|---|
-| Product vision and scope | In progress | 80% | Core product pillars and MVP documented |
-| PRD and user journeys | In progress | 75% | Initial requirements and acceptance criteria drafted |
-| Architecture and data boundaries | In progress | 68% | API/frontend boundary, demo-data trust rules, provider contract, and marketplace visibility gates documented in code |
-| Roadmap and project governance | In progress | 85% | Core project docs and status tracker maintained |
-| Security, privacy, compliance | In progress | 53% | HTTPS-only affiliate destinations, opaque UUID click IDs, ownership/moderation visibility gates; broader abuse controls remain |
-| API implementation | In progress | 76% | Catalog reads, affiliate click persistence, marketplace lifecycle visibility, and listing detail reads committed; not runtime-verified |
-| Database and migrations | In progress | 68% | Sequential migrations cover registrar offers, hosting plans, affiliate clicks, and marketplace lifecycle metadata; execution remains unverified |
-| Frontend | In progress | 35% | Responsive prototype calls comparison APIs; marketplace lifecycle UI not yet connected |
-| Provider/affiliate integrations | In progress | 30% | Safe redirect plus persistent click foundation; no live provider integration or affiliate approval verified |
-| Automated tests and CI | In progress | 55% | Marketplace ownership/moderation visibility tests plus prior catalog, affiliate, registrar, validation, and CORS tests committed; execution result not verified |
+| Product vision and scope | In progress | 82% | Core marketplace and comparison pillars documented |
+| PRD and user journeys | In progress | 78% | Marketplace lifecycle requirements expanded |
+| Architecture and data boundaries | In progress | 73% | Marketplace trust boundaries and lifecycle storage defined |
+| Roadmap and project governance | In progress | 88% | Status and migration sequence maintained |
+| Security, privacy, compliance | In progress | 62% | Visibility gates, audit foundation, hashed ownership challenges, and privacy-conscious tracking implemented; auth/abuse/compliance remain |
+| API implementation | In progress | 78% | Public marketplace reads are gated; secure seller writes intentionally not exposed yet |
+| Database and migrations | In progress | 78% | Migrations now cover lifecycle metadata, audit events, and ownership challenges; execution remains unverified |
+| Frontend | In progress | 35% | Responsive comparison prototype; seller UI not connected |
+| Provider/affiliate integrations | In progress | 30% | Safe affiliate redirect foundation; no live provider access verified |
+| Automated tests and CI | In progress | 60% | Schema and marketplace helper tests committed; runtime/CI result still unverified |
 | Deployment and monitoring | Not started | 0% | No deployment verified |
 
 ## Verified repository deliverables
-- [x] README and project entry point
-- [x] PRD, architecture, roadmap, decision log, status, testing, security, and contribution docs
-- [x] Python dependency list, environment example, and ignore rules
-- [x] FastAPI health and readiness endpoints
-- [x] Domain search returns explicit unknown availability and demo source status
-- [x] Domain extension suggestions endpoint and tests committed
-- [x] Allowlisted affiliate redirect endpoint with HTTPS validation and safety tests committed
-- [x] Initial SQLAlchemy registrar-offer and marketplace-listing models committed
-- [x] Alembic configuration, revision template, and sequential catalog migrations committed
-- [x] Database model safety tests committed
-- [x] Read-only persistent marketplace listing endpoint now exposes only active listings with verified ownership and approved moderation status
-- [x] Marketplace listing-detail endpoint returns a single publicly visible approved listing or 404
-- [x] Marketplace lifecycle fields added for ownership status, moderation status, seller reference, and update timestamp
-- [x] Alembic migration `0004_marketplace_lifecycle.py` adds lifecycle fields without rewriting earlier migrations
-- [x] Isolated SQLite tests cover marketplace visibility gates and hidden unverified/pending listings
-- [x] Read-only registrar offer endpoint filters to verified, priced records, sorts by registration price, and caps responses at 100
-- [x] Read-only persistent hosting plan endpoint filters to active, verified, priced records, supports site-type/price filters, sorts by introductory price, and caps responses at 100
-- [x] Affiliate redirects persist opaque UUID click IDs without IP address or user-agent fields
-- [x] Responsive frontend prototype committed
-- [x] Local development CORS origins restricted to common localhost ports
-- [x] Production CORS origins can be configured through an environment variable
-- [x] pytest suite and GitHub Actions workflow committed
-- [ ] Tests executed successfully
-- [ ] CI result verified
-- [ ] API and frontend smoke-tested together
-- [ ] Production origin configuration documented and tested
+- [x] Persistent marketplace visibility requires active listing + active status + verified ownership + approved moderation
+- [x] Marketplace listing detail endpoint enforces the same public visibility gates
+- [x] Marketplace lifecycle migration `0004_marketplace_lifecycle.py`
+- [x] Listing audit-event model and migration `0005_listing_audit_events.py`
+- [x] Audit events avoid IP address and user-agent storage
+- [x] Ownership challenge model stores a SHA-256 token hash rather than a raw token
+- [x] Ownership challenge migration `0006_ownership_challenges.py`
+- [x] Marketplace lifecycle helpers create bounded DNS-TXT challenges and append audit events
+- [x] Tests cover marketplace lifecycle schema, audit schema, ownership-challenge schema, and helper behavior
+- [x] Domain validation/search/suggestion foundation
+- [x] Registrar and hosting persistent read catalogs
+- [x] HTTPS-only allowlisted affiliate redirects with opaque click tracking
+- [x] Responsive frontend prototype
+- [ ] Runtime pytest suite verified
+- [ ] Alembic upgrade/downgrade verified from a clean database
+- [ ] GitHub Actions result verified
+- [ ] API/frontend smoke test verified
+- [ ] Authentication and authorization implemented
+- [ ] Real DNS/registrar ownership verification implemented
+- [ ] Seller listing creation/editing implemented
+- [ ] Seller dashboard implemented
+- [ ] Buy Now / Make Offer transaction flow implemented
+- [ ] Payments/transfer workflow implemented
+- [ ] Auctions implemented
+- [ ] Live registrar/hosting provider integrations verified
+- [ ] Production deployment and monitoring verified
 
 ## Milestones
-- [x] M0.1 Confirm product direction and repository access.
-- [x] M0.2 Create project documentation structure.
-- [ ] M0.3 Finalize MVP acceptance criteria.
-- [x] M1.1 Commit API scaffold and health endpoint.
-- [x] M1.2 Commit automated tests and CI workflow.
-- [x] M1.3 Commit domain validation and comparison endpoints.
-- [x] M2.1 Commit demo comparison APIs.
-- [x] M2.2 Commit first responsive comparison prototype.
-- [ ] M2.3 Run and verify API/frontend end-to-end.
-- [x] M3.0 Define registrar adapter contract and safe demo implementation.
-- [ ] M3.1 Integrate and verify a real provider after confirming API access and terms.
-- [x] M4.0 Add marketplace visibility lifecycle gates.
-- [ ] M4.1 Add secure seller listing creation/authentication and ownership verification.
-- [ ] M5.1 Deploy a test environment and verify end-to-end.
+- [x] M0 Foundation documentation and repository
+- [x] M1 Runnable API/test baseline committed
+- [x] M2 Domain/hosting comparison prototype committed
+- [x] M3 Registrar adapter contract and affiliate safety foundation
+- [x] M4 Marketplace visibility lifecycle gates
+- [x] M4.1 Audit-event and ownership-challenge storage foundation
+- [ ] M4.2 Authentication + seller listing workflow
+- [ ] M4.3 Real ownership verification
+- [ ] M5 Transaction workflows
+- [ ] M6 Live provider integrations
+- [ ] M7 Production staging and launch verification
 
 ## Current limitations
-- Runtime tests and Alembic migrations have not been executed in this work session.
-- Domain search does not contact registrars; availability remains unknown.
-- Hosting plans and aftermarket listings are fictional illustrative records until real provider/catalog feeds are connected.
-- Affiliate redirects require configured allowlisted HTTPS destinations; click tracking stores only an opaque UUID, provider key, and timestamp.
-- Marketplace visibility now requires `active`, `listing_status=active`, `ownership_status=verified`, and `moderation_status=approved`; there is deliberately no public seller write route yet.
-- Accounts, seller dashboard, ownership challenges, payments, transfers, and auctions are not implemented.
-- Browser prototype assumes the API is running at http://127.0.0.1:8000.
-- CI workflow is committed but must run before its status can be claimed as passing.
+- Runtime tests and Alembic migrations could not be executed from the current environment because external GitHub network access is unavailable to the execution container.
+- CI has not been verified as passing.
+- Domain availability remains unknown because no live registrar is queried.
+- Hosting and aftermarket catalog records remain illustrative/database-supplied until verified feeds are connected.
+- Ownership challenge generation exists as an internal helper only; DNS lookup/verification is not implemented.
+- No public seller write route exists yet, intentionally.
+- Authentication, authorization, abuse prevention, payments, transfers, and auctions remain unimplemented.
 
 ## Next actions
-1. Trigger/verify GitHub Actions and fix any failures.
-2. Smoke-test API endpoints and frontend together.
-3. Run Alembic upgrade/downgrade verification from a clean database.
-4. Build secure seller listing foundations: authentication boundary, ownership verification challenge records, and audit events.
-5. Connect marketplace UI to the public approved-listing read endpoints.
+1. Build authentication/authorization boundary for seller and admin operations.
+2. Add authenticated seller listing submission with draft → review lifecycle.
+3. Implement DNS ownership verification against the stored challenge hash.
+4. Add moderation/admin operations behind authorization.
+5. Connect marketplace frontend to authenticated seller workflows and public inventory.
+6. Verify migrations/tests/CI, then move into transaction and live-provider integrations.
 
 ## Update discipline
-Update this file when milestones change. Progress must reflect verified deliverables, not effort estimates.
+Progress must reflect verified repository deliverables, not effort estimates. Never mark an external integration or runtime test as complete until it has actually been verified.
