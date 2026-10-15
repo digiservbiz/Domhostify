@@ -320,7 +320,7 @@ def list_persistent_marketplace_listings(
         statement = statement.where(DBMarketplaceListing.domain.ilike(f"%{q.strip()}%"))
     if max_price is not None:
         statement = statement.where(DBMarketplaceListing.asking_price <= max_price)
-    statement = statement.order_by(DBMarketplaceListing.created_at.desc())
+    statement = statement.order_by(DBMarketplaceListing.created_at.desc()).limit(100)
     try:
         records = db.scalars(statement).all()
     except OperationalError as exc:
@@ -368,6 +368,7 @@ def list_verified_registrar_offers(
             DBRegistrarOffer.registration_price.is_not(None),
         )
         .order_by(DBRegistrarOffer.registration_price.asc())
+        .limit(100)
     )
     try:
         records = db.scalars(statement).all()
