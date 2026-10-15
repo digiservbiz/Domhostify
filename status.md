@@ -2,10 +2,10 @@
 
 **Last updated:** 2026-10-15  
 **Current phase:** Phase 4 — Marketplace security foundation  
-**Overall progress:** 80% (seller listing lifecycle is committed; transaction schema/state machine and audit events are added; GitHub Actions passes 45 tests; migration execution, live transactions, real account auth, providers, and deployment remain outstanding)
+**Overall progress:** 83% (seller listing lifecycle and authenticated make-offer submission/decision/cancellation are committed; GitHub Actions passes 49 tests; migration execution, real user accounts, payments, providers, and deployment remain outstanding)
 
 ## Executive status
-The marketplace now has separate fail-closed bootstrap boundaries for seller writes/inventory and admin moderation, plus authenticated seller listing submission/inventory reads. Submissions are normalized, stored as `pending_review`, remain unverified/inactive, and create an audit event. Inventory reads filter by the opaque SHA-256-derived seller reference. The seller token is never stored directly. This is a bootstrap boundary, not yet a full user/account identity system.
+The marketplace now has fail-closed bootstrap boundaries for seller, buyer, and admin actions. Sellers can submit, edit, withdraw, verify ownership, and review offers; buyers can submit, inspect, and cancel make-offers. Offers are only accepted on publicly approved listings and every state change is audited. Opaque SHA-256-derived references are used, but the tokens still represent one bootstrap identity each—not real multi-user accounts.
 
 ## Workstream tracker
 | Workstream | Status | Progress | Notes |
@@ -15,11 +15,11 @@ The marketplace now has separate fail-closed bootstrap boundaries for seller wri
 | Architecture and data boundaries | In progress | 78% | Seller auth boundary and marketplace trust gates defined |
 | Roadmap and project governance | In progress | 90% | Status and migration sequence maintained |
 | Security, privacy, compliance | In progress | 78% | Seller/admin bootstrap boundaries, hashed one-time DNS proof, bounded DNS lookup, audit trail; full auth/abuse controls remain |
-| API implementation | In progress | 94% | Seller submission/inventory, edit/withdraw lifecycle, admin moderation, and authenticated DNS ownership endpoints committed; runtime verification outstanding |
+| API implementation | In progress | 96% | Seller lifecycle, DNS verification, admin moderation, and authenticated make-offer endpoints committed; runtime behavior covered by CI tests |
 | Database and migrations | In progress | 84% | Lifecycle, ownership, and transaction/event schemas plus migrations committed; clean-database upgrade/downgrade still unverified |
 | Frontend | In progress | 35% | Responsive comparison prototype; seller UI not connected |
 | Provider/affiliate integrations | In progress | 30% | Safe affiliate redirect foundation; no live provider access verified |
-| Automated tests and CI | In progress | 86% | GitHub Actions passed 45 tests on 2026-10-15 with one warning; migration/smoke verification remains pending |
+| Automated tests and CI | In progress | 90% | GitHub Actions passed 49 tests on 2026-10-15 with one warning; migration/smoke verification remains pending |
 | Deployment and monitoring | Not started | 0% | No deployment verified |
 
 ## Verified repository deliverables
@@ -53,7 +53,7 @@ The marketplace now has separate fail-closed bootstrap boundaries for seller wri
 - [x] Registrar and hosting persistent read catalogs
 - [x] HTTPS-only allowlisted affiliate redirects with opaque click tracking
 - [x] Responsive frontend prototype
-- [x] Runtime pytest suite verified in GitHub Actions: 41 passed, 1 warning (2026-10-15)
+- [x] Runtime pytest suite verified in GitHub Actions: 49 passed, 1 warning (2026-10-15)
 - [ ] Alembic upgrade/downgrade verified from a clean database
 - [x] GitHub Actions CI passed on transaction code: 45 passed, 1 warning (2026-10-15)
 - [ ] API/frontend smoke test verified
@@ -64,7 +64,8 @@ The marketplace now has separate fail-closed bootstrap boundaries for seller wri
 - [ ] Seller dashboard implemented
 - [ ] Full moderation/admin operations implemented
 - [x] Bootstrap admin review endpoint supports approve/reject with audit events
-- [ ] Buy Now / Make Offer transaction API and buyer/seller authorization implemented (schema/state-machine foundation only)
+- [x] Bootstrap-authenticated Make Offer submission, buyer offer history/cancellation, seller offer inventory, accept/reject decisions, and transaction audit events committed and CI-tested
+- [ ] Buy Now checkout, atomic listing reservation, idempotency, and real multi-user buyer/seller authorization implemented
 - [ ] Payments/transfer workflow implemented
 - [ ] Auctions implemented
 - [ ] Live registrar/hosting provider integrations verified
@@ -81,7 +82,7 @@ The marketplace now has separate fail-closed bootstrap boundaries for seller wri
 - [x] M4.3 Ownership verification API committed; mocked DNS verification test passes, live DNS checks remain pending
 - [x] M4.3.1 Seller listing edit/withdraw lifecycle committed and CI-tested
 - [x] M5.0 Transaction schema, event log, and guarded state-machine foundation committed and CI-tested
-- [ ] M5.1 Authenticated transaction API, listing reservation, and idempotency
+- [x] M5.1 Bootstrap-authenticated Make Offer API, buyer/seller offer views, decisions, cancellation, and audit trail (CI-tested)\n- [ ] M5.2 Buy Now, listing reservation, idempotency, payments, and transfer workflow
 - [ ] M4.4 Moderation/admin workflow (bootstrap approve/reject exists; seller listing edit/withdraw now committed)
 - [ ] M5 Transaction workflows
 - [ ] M6 Live provider integrations
@@ -96,7 +97,7 @@ The marketplace now has separate fail-closed bootstrap boundaries for seller wri
 - Authenticated seller ownership-challenge and verification endpoints now exist in code. They issue a 30-minute TXT token, resolve TXT with a 4-second DNS lifetime, consume a valid challenge once, and keep listings unpublished pending moderation. Runtime tests and live DNS behavior remain unverified.
 - Seller listing editing and soft withdrawal endpoints are committed. Edits unpublish the listing and reset moderation to pending; withdrawal preserves the record/audit history. Runtime behavior remains unverified. Full admin tooling is still incomplete; bootstrap approve/reject requires a separate admin token and refuses approval until ownership is verified.
 - Seller inventory currently uses a single configured bootstrap token; do not issue it to multiple sellers. A real account/session/role system is required for multi-seller production use.
-- The transaction schema and guarded state-machine helper are implemented, but there is no transaction creation API, payment collection, escrow, or registrar transfer integration. Payments, transfers, abuse prevention, and auctions remain unimplemented.
+- Make-offer API endpoints are implemented using one bootstrap buyer token and one bootstrap seller token. They do not create a payment obligation, process payment, reserve a listing for checkout, or transfer a domain. Buy Now, payment webhooks, escrow, refunds, disputes, abuse prevention, and auctions remain unimplemented.
 
 ## Next actions
 1. Run the full test suite and verify the new DNS endpoint tests; confirm resolver behavior against a controlled DNS zone.
