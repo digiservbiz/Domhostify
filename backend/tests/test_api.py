@@ -218,3 +218,25 @@ def test_persistent_marketplace_endpoint_returns_only_active_database_listings()
         app.dependency_overrides.pop(get_db, None)
         Base.metadata.drop_all(bind=engine)
         engine.dispose()
+
+
+def test_persistent_marketplace_endpoint_fails_closed_when_schema_is_missing() -> None:
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    TestSession = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+
+    def override_get_db():
+        with TestSession() as session:
+            yield session
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        response = client.get("/api/v1/marketplace/persistent-listings")
+        assert response.status_code == 503
+        assert "Apply database migrations first" in response.json()["detail"]
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+        engine.dispose()
