@@ -33,8 +33,8 @@ Progress and blockers live in [status.md](../status.md). Dates are not committed
 - [ ] Disclosure and privacy review.
 
 ## Phase 4 — Domain aftermarket
-- [ ] Listing schema and search.
-- [ ] Listing submission/moderation and ownership verification.
+- [x] Listing schema and public visibility search.
+- [x] Seller listing submission, edit/withdraw lifecycle, moderation gates, and DNS TXT ownership verification (runtime verification still pending).
 - [ ] Buy Now / Make Offer workflows.
 - [ ] Transaction partner evaluation and secure transfer procedures.
 - [ ] Auctions after core workflows are tested.
