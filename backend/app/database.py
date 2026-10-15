@@ -1,4 +1,4 @@
-"""Initial persistent records for DomHostify catalog data."""
+"""Persistent records for DomHostify catalog and marketplace data."""
 import os
 from datetime import datetime, timezone
 
@@ -58,6 +58,17 @@ class MarketplaceListing(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, server_default=func.now())
     active: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+
+
+class ListingAuditEvent(Base):
+    __tablename__ = "listing_audit_events"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    listing_id: Mapped[int] = mapped_column(Integer, index=True)
+    event_type: Mapped[str] = mapped_column(String(60), index=True)
+    actor_type: Mapped[str] = mapped_column(String(30), default="system", server_default="system")
+    actor_ref: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    event_note: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, server_default=func.now(), index=True)
 
 
 class AffiliateClick(Base):
