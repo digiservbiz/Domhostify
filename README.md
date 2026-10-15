@@ -13,7 +13,7 @@ DomHostify helps people move from a business idea to an online presence: find a 
 6. Seller portfolio, listing management, pricing guidance, and analytics.
 
 ## Current delivery stage
-**Phase 2 — Comparison prototype.** The API scaffold, domain input validation, demo endpoints, expanded tests, CI workflow, and responsive HTML/JavaScript prototype are committed. Runtime and CI results are not yet verified. See [status.md](status.md), [PRD](docs/PRD.md), and [roadmap](docs/ROADMAP.md).
+**Phase 4 — Marketplace security foundation.** The API includes moderated listings, DNS ownership challenges, Make Offer workflows, and temporary idempotent Buy Now reservations without payment. The public frontend now reads only verified persistent hosting plans and approved marketplace listings; domain availability search remains demo-only until a live registrar adapter is connected. Latest recorded GitHub Actions run passed. See [status.md](status.md), [PRD](docs/PRD.md), and [roadmap](docs/ROADMAP.md). See [status.md](status.md), [PRD](docs/PRD.md), and [roadmap](docs/ROADMAP.md).
 
 ## Project documentation
 - [Product requirements (PRD)](docs/PRD.md)
@@ -43,9 +43,9 @@ Use Python 3.11 or newer.
 6. Initialize the local database schema: `python -m alembic upgrade head`
 7. Run tests: `python -m pytest -q`
 
-The frontend expects the API at `http://127.0.0.1:8000`. CORS defaults to common localhost development origins. Set `CORS_ALLOWED_ORIGINS` to a comma-separated list of exact origins before deployment. Set `DATABASE_URL` to a managed PostgreSQL connection string when using a production database.
+The frontend defaults to `http://127.0.0.1:8000`. To point it at another API, set `window.DOMHOSTIFY_API_BASE` in a script tag before the frontend's main script, for example `window.DOMHOSTIFY_API_BASE = 'https://api.example.com';`. Never put seller, buyer, or admin tokens in frontend code. CORS defaults to common localhost development origins. Set `CORS_ALLOWED_ORIGINS` to a comma-separated list of exact origins before deployment. Set `DATABASE_URL` to a managed PostgreSQL connection string when using a production database.
 
-Domain, hosting, and marketplace API responses are still illustrative demo data. Database migrations create registrar-offer, hosting-plan, and marketplace-listing tables. `GET /api/v1/marketplace/persistent-listings` reads only records explicitly marked active; `GET /api/v1/domains/offers?domain=example.com` reads stored registrar records marked verified with a registration price; and `GET /api/v1/hosting/persistent-plans` reads only active hosting plans marked verified with a known introductory price. These endpoints read the database and do not contact providers live. The existing `/api/v1/hosting/plans` and `/api/v1/marketplace/listings` endpoints remain illustrative demo data. Apply migrations before calling persistent endpoints. Domain search explicitly returns availability as unknown and does not contact a registrar.
+Domain search and the legacy `/api/v1/hosting/plans` and `/api/v1/marketplace/listings` endpoints still return illustrative demo data. The public frontend now uses persistent hosting and marketplace endpoints and reports empty inventory rather than inventing real offers. Database migrations create registrar-offer, hosting-plan, and marketplace-listing tables. `GET /api/v1/marketplace/persistent-listings` reads only records explicitly marked active; `GET /api/v1/domains/offers?domain=example.com` reads stored registrar records marked verified with a registration price; and `GET /api/v1/hosting/persistent-plans` reads only active hosting plans marked verified with a known introductory price. These endpoints read the database and do not contact providers live. The existing `/api/v1/hosting/plans` and `/api/v1/marketplace/listings` endpoints remain illustrative demo data. Apply migrations before calling persistent endpoints. Domain search explicitly returns availability as unknown and does not contact a registrar.
 
 ## Product principles
 - Distinguish verified live data from estimates, cached data, and demo data.
