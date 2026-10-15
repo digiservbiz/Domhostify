@@ -9,6 +9,8 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from backend.app.providers import DemoRegistrarProvider
+
 app = FastAPI(
     title="DomHostify API",
     description=(
@@ -29,6 +31,7 @@ app.add_middleware(
 )
 
 _LABEL_RE = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$")
+_DEMO_REGISTRAR = DemoRegistrarProvider()
 
 
 def normalize_domain_query(value: str) -> str:
@@ -63,6 +66,7 @@ class DomainSearchResult(BaseModel):
     domain: str
     availability: str = Field(description="Unknown until a registrar has checked it.")
     source_status: str
+    provider_key: str = "demo"
     checked_at: str | None = None
     note: str
 
@@ -141,13 +145,15 @@ def search_domains(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
+    result = _DEMO_REGISTRAR.check_domain(candidate)
     return [
         DomainSearchResult(
-            domain=candidate,
-            availability="unknown",
-            source_status="demo_only",
-            checked_at=None,
-            note="Demo response. Availability and pricing have not been checked with a registrar.",
+            domain=result.domain,
+            availability=result.availability,
+            source_status=result.source_status,
+            provider_key=result.provider_key,
+            checked_at=result.checked_at,
+            note=result.note,
         )
     ]
 
