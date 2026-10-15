@@ -64,3 +64,12 @@ Select integrations based on access, commercial terms, region, price freshness, 
 - Minimize click metadata and define retention.
 - Authenticate and authorize seller/admin writes.
 - Audit privileged changes.
+
+
+## Marketplace trust workflow
+1. Seller submits a listing through the authenticated bootstrap seller endpoint.
+2. Listing remains inactive, pending review, and ownership-unverified.
+3. Admin review requires the separate `DOMHOSTIFY_ADMIN_API_TOKEN`.
+4. Approval is rejected unless ownership is already marked verified; successful approval activates the listing and records an audit event.
+5. Rejection sets the listing inactive and non-public, also recording an audit event.
+6. DNS challenge generation exists internally, but live DNS lookup/verification is still pending. Never manually mark ownership verified in production without evidence from the verification service.
