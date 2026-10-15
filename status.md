@@ -28,7 +28,13 @@ The repository contains product/engineering documentation, a FastAPI demo API, d
 - [x] Python dependency list, environment example, and ignore rules
 - [x] FastAPI health and readiness endpoints
 - [x] Domain search returns explicit unknown availability and demo source status
-- [x] Domain extension suggestions endpoint and tests committed\n- [x] Registrar provider contract and safe demo adapter committed\n- [x] Provider adapter safety tests committed\n- [x] Provider integration requirements documented
+- [x] Domain extension suggestions endpoint and tests committed
+- [x] Allowlisted affiliate redirect endpoint with HTTPS validation and safety tests committed
+- [x] Initial SQLAlchemy registrar-offer and marketplace-listing models committed
+- [x] Database model safety tests committed
+- [x] Registrar provider contract and safe demo adapter committed
+- [x] Provider adapter safety tests committed
+- [x] Provider integration requirements documented
 - [x] Domain query normalization/validation helper and malformed-input tests committed
 - [x] Hosting-plan catalog endpoint and filters
 - [x] Marketplace listing endpoint and filters
@@ -50,7 +56,8 @@ The repository contains product/engineering documentation, a FastAPI demo API, d
 - [x] M2.1 Commit demo comparison APIs.
 - [x] M2.2 Commit first responsive comparison prototype.
 - [ ] M2.3 Run and verify API/frontend end-to-end.
-- [x] M3.0 Define registrar adapter contract and safe demo implementation.\n- [ ] M3.1 Integrate and verify a real provider after confirming API access and terms.
+- [x] M3.0 Define registrar adapter contract and safe demo implementation.
+- [ ] M3.1 Integrate and verify a real provider after confirming API access and terms.
 - [ ] M4.1 Expand marketplace listing foundations.
 - [ ] M5.1 Deploy a test environment and verify end-to-end.
 
