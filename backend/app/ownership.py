@@ -1,5 +1,6 @@
 """Domain ownership verification helpers."""
 import hashlib
+import hmac
 from datetime import timezone
 
 from sqlalchemy.orm import Session
@@ -25,7 +26,7 @@ def verify_listing_ownership(
     if expires_at <= now:
         challenge.status = "expired"
         return False
-    if not any(hashlib.sha256(value.encode("utf-8")).hexdigest() == challenge.token_hash for value in txt_values):
+    if not any(hmac.compare_digest(hashlib.sha256(value.encode("utf-8")).hexdigest(), challenge.token_hash) for value in txt_values):
         return False
     challenge.status = "verified"
     challenge.verified_at = now
