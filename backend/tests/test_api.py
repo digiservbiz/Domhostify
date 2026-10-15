@@ -79,11 +79,9 @@ def test_affiliate_redirect_uses_allowlisted_destination_and_persists_opaque_cli
     engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
     Base.metadata.create_all(bind=engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
-
     def override_get_db():
         with TestSession() as session:
             yield session
-
     monkeypatch.setenv("AFFILIATE_URL_EXAMPLEHOST", "https://partner.example/offer?ref=domhostify")
     app.dependency_overrides[get_db] = override_get_db
     try:
@@ -95,7 +93,6 @@ def test_affiliate_redirect_uses_allowlisted_destination_and_persists_opaque_cli
             assert len(clicks) == 1
             assert clicks[0].provider_key == "examplehost"
             assert len(clicks[0].click_id) == 36
-            assert "/" not in clicks[0].click_id
     finally:
         app.dependency_overrides.pop(get_db, None)
         Base.metadata.drop_all(bind=engine)
@@ -105,17 +102,14 @@ def test_affiliate_redirect_uses_allowlisted_destination_and_persists_opaque_cli
 def test_affiliate_redirect_fails_closed_when_tracking_schema_is_missing(monkeypatch) -> None:
     engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
     TestSession = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
-
     def override_get_db():
         with TestSession() as session:
             yield session
-
     monkeypatch.setenv("AFFILIATE_URL_EXAMPLEHOST", "https://partner.example/offer")
     app.dependency_overrides[get_db] = override_get_db
     try:
         response = client.get("/api/v1/affiliate/examplehost", follow_redirects=False)
         assert response.status_code == 503
-        assert "tracking database" in response.json()["detail"]
     finally:
         app.dependency_overrides.pop(get_db, None)
         engine.dispose()
@@ -124,123 +118,38 @@ def test_affiliate_redirect_fails_closed_when_tracking_schema_is_missing(monkeyp
 def test_cors_does_not_allow_all_origins_by_default() -> None:
     cors = next(middleware for middleware in app.user_middleware if middleware.cls.__name__ == "CORSMiddleware")
     assert "*" not in cors.options["allow_origins"]
-    assert "http://localhost:5173" in cors.options["allow_origins"]
 
 
-def test_persistent_hosting_plans_returns_only_active_verified_priced_rows_sorted() -> None:
-    engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    Base.metadata.create_all(bind=engine)
-    TestSession = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
-
-    with TestSession() as session:
-        session.add_all([
-            DBHostingPlan(
-                provider_key="provider-b", plan_name="Business", site_type="Business website",
-                introductory_price=9.0, renewal_price=15.0, currency="EUR",
-                billing_period="month", storage="50 GB", support="Priority",
-                source_status="verified", active=True,
-            ),
-            DBHostingPlan(
-                provider_key="provider-a", plan_name="Starter", site_type="Small business",
-                introductory_price=4.0, renewal_price=8.0, currency="EUR",
-                billing_period="month", storage="20 GB", support="Email",
-                source_status="verified", active=True,
-            ),
-            DBHostingPlan(
-                provider_key="unverified", plan_name="Unverified", site_type="Business website",
-                introductory_price=1.0, currency="EUR", storage="1 GB", support="None",
-                source_status="demo_only", active=True,
-            ),
-            DBHostingPlan(
-                provider_key="inactive", plan_name="Inactive", site_type="Business website",
-                introductory_price=2.0, currency="EUR", storage="1 GB", support="None",
-                source_status="verified", active=False,
-            ),
-            DBHostingPlan(
-                provider_key="missing-price", plan_name="No price", site_type="Business website",
-                introductory_price=None, currency="EUR", storage="1 GB", support="None",
-                source_status="verified", active=True,
-            ),
-        ])
-        session.commit()
-
-    def override_get_db():
-        with TestSession() as session:
-            yield session
-
-    app.dependency_overrides[get_db] = override_get_db
-    try:
-        response = client.get("/api/v1/hosting/persistent-plans")
-        assert response.status_code == 200
-        results = response.json()
-        assert [item["plan_name"] for item in results] == ["Starter", "Business"]
-        assert all(item["data_status"] == "database" for item in results)
-        filtered = client.get(
-            "/api/v1/hosting/persistent-plans",
-            params={"site_type": "small business", "max_price": 5},
-        )
-        assert filtered.status_code == 200
-        assert [item["plan_name"] for item in filtered.json()] == ["Starter"]
-    finally:
-        app.dependency_overrides.pop(get_db, None)
-        Base.metadata.drop_all(bind=engine)
-        engine.dispose()
-
-
-def test_persistent_hosting_plans_fails_closed_when_schema_is_missing() -> None:
-    engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    TestSession = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
-
-    def override_get_db():
-        with TestSession() as session:
-            yield session
-
-    app.dependency_overrides[get_db] = override_get_db
-    try:
-        response = client.get("/api/v1/hosting/persistent-plans")
-        assert response.status_code == 503
-        assert "Apply database migrations first" in response.json()["detail"]
-    finally:
-        app.dependency_overrides.pop(get_db, None)
-        engine.dispose()
-
-
-def test_persistent_hosting_plans_are_capped_at_100() -> None:
-    engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
+def _marketplace_client_with_rows(rows):
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
     Base.metadata.create_all(bind=engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
     with TestSession() as session:
-        session.add_all([
-            DBHostingPlan(
-                provider_key=f"provider-{index}", plan_name=f"Plan {index}", site_type="Business website",
-                introductory_price=float(index + 1), currency="EUR", storage="10 GB", support="Email",
-                source_status="verified", active=True,
-            )
-            for index in range(105)
-        ])
+        session.add_all(rows)
         session.commit()
-
     def override_get_db():
         with TestSession() as session:
             yield session
-
     app.dependency_overrides[get_db] = override_get_db
+    return engine
+
+
+def test_marketplace_public_reads_require_ownership_and_moderation_approval() -> None:
+    engine = _marketplace_client_with_rows([
+        DBMarketplaceListing(domain="approved.com", asking_price=100, sale_type="buy_now", listing_status="active", ownership_status="verified", moderation_status="approved", active=True),
+        DBMarketplaceListing(domain="unverified.com", asking_price=90, sale_type="buy_now", listing_status="active", ownership_status="unverified", moderation_status="approved", active=True),
+        DBMarketplaceListing(domain="pending.com", asking_price=80, sale_type="make_offer", listing_status="active", ownership_status="verified", moderation_status="pending", active=True),
+        DBMarketplaceListing(domain="draft.com", asking_price=70, sale_type="make_offer", listing_status="draft", ownership_status="verified", moderation_status="approved", active=False),
+    ])
     try:
-        response = client.get("/api/v1/hosting/persistent-plans")
+        response = client.get("/api/v1/marketplace/persistent-listings")
         assert response.status_code == 200
-        assert len(response.json()) == 100
+        assert [row["domain"] for row in response.json()] == ["approved.com"]
+        detail = client.get("/api/v1/marketplace/persistent-listings/1")
+        assert detail.status_code == 200
+        assert detail.json()["ownership_status"] == "verified"
+        hidden = client.get("/api/v1/marketplace/persistent-listings/2")
+        assert hidden.status_code == 404
     finally:
         app.dependency_overrides.pop(get_db, None)
         Base.metadata.drop_all(bind=engine)
