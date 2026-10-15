@@ -56,6 +56,14 @@ class MarketplaceListing(Base):
     active: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
 
 
+class AffiliateClick(Base):
+    __tablename__ = "affiliate_clicks"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    click_id: Mapped[str] = mapped_column(String(36), unique=True, index=True)
+    provider_key: Mapped[str] = mapped_column(String(80), index=True)
+    clicked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, server_default=func.now())
+
+
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./domhostify.db")
 _engine_options = {"connect_args": {"check_same_thread": False}} if DATABASE_URL.startswith("sqlite") else {}
 engine = create_engine(DATABASE_URL, pool_pre_ping=True, **_engine_options)
@@ -68,7 +76,7 @@ def create_schema() -> None:
 
 
 def get_db():
-    """Yield a short-lived database session for read-only API dependencies."""
+    """Yield a short-lived database session for API dependencies."""
     db: Session = SessionLocal()
     try:
         yield db
