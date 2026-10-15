@@ -32,7 +32,7 @@ def upgrade() -> None:
         sa.Column("currency", sa.String(length=3), server_default="EUR", nullable=False),
         sa.Column("sale_type", sa.String(length=30), server_default="make_offer", nullable=False),
         sa.Column("listing_status", sa.String(length=30), server_default="draft", nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.Column("active", sa.Boolean(), server_default=sa.false(), nullable=False),
     )
     op.create_index("ix_marketplace_listings_domain", "marketplace_listings", ["domain"])
