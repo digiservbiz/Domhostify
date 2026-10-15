@@ -10,6 +10,7 @@ from backend.app.database import MarketplaceTransaction, MarketplaceTransactionE
 
 ALLOWED_TRANSITIONS: dict[str, frozenset[str]] = {
     "offer_pending": frozenset({"accepted", "rejected", "cancelled"}),
+    "buy_now_pending": frozenset({"payment_pending", "cancelled"}),
     "accepted": frozenset({"payment_pending", "cancelled"}),
     "payment_pending": frozenset({"paid", "cancelled", "disputed"}),
     "paid": frozenset({"transfer_pending", "disputed", "refunded"}),
