@@ -25,7 +25,7 @@
 - backend/tests/: pytest suite
 - docs/: product and engineering documentation
 - frontend/: planned web client after API contracts stabilize
-- PostgreSQL for persistent production data, with migrations when introduced.
+- SQLAlchemy persistence layer with Alembic migrations; use PostgreSQL for production data.
 
 ## 4. Provider adapter contract (partially implemented)
 Each adapter should return provider key/name, product type, requested domain or plan, availability status (available/unavailable/unknown/error), price and ISO currency where supplied, billing period, introductory/renewal/transfer distinctions, source reference where permitted, checked-at timestamp, freshness metadata, affiliate metadata, and structured errors.
@@ -42,10 +42,11 @@ Use migrations for schema changes. Monetary values require decimal-safe storage 
 - GET /ready — readiness when dependencies exist
 - GET /api/v1/domains/search?q=... — provider-checked results or clearly labelled demo results
 - GET /api/v1/hosting/plans — filterable hosting catalog
-- GET /api/v1/marketplace/listings — aftermarket browse/search
+- GET /api/v1/marketplace/listings — demo aftermarket browse/search
+- GET /api/v1/marketplace/persistent-listings — read-only database-backed browse of explicitly active listings
 - GET /r/{provider_key} — safe configured affiliate redirect and click event
 
-These are targets, not claims that endpoints already exist. Redirect destinations must come from trusted server configuration, never arbitrary user input.
+The persistent listing endpoint requires the initial database migration to be applied. It exposes only rows where `active=true` and `listing_status=active`; seller write flows and authorization are not implemented yet. Redirect destinations must come from trusted server configuration, never arbitrary user input.
 
 ## 7. External dependencies
 Registrar APIs/data feeds, hosting catalogs, affiliate programs, affiliate reporting, and later identity, payment/escrow, transfer, email, and analytics providers.
