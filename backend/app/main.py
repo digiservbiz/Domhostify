@@ -3,10 +3,13 @@
 All catalog entries are illustrative demo data. Live provider adapters are not
 configured, so domain availability must remain unknown.
 """
+import os
 import re
+from urllib.parse import urlparse
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 
 from backend.app.providers import DemoRegistrarProvider
@@ -200,6 +203,38 @@ def suggest_domain_extensions(
             )
         )
     return results
+
+
+_AFFILIATE_ENV_KEYS = {
+    "examplehost": "AFFILIATE_URL_EXAMPLEHOST",
+    "examplecloud": "AFFILIATE_URL_EXAMPLECLOUD",
+}
+
+
+def _approved_affiliate_destination(provider_key: str) -> str | None:
+    """Return a configured HTTPS destination for an allowlisted provider only."""
+    env_key = _AFFILIATE_ENV_KEYS.get(provider_key)
+    if env_key is None:
+        raise HTTPException(status_code=404, detail="Unknown affiliate provider.")
+    destination = os.getenv(env_key, "").strip()
+    if not destination:
+        return None
+    parsed = urlparse(destination)
+    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
+        return None
+    return destination
+
+
+@app.get("/api/v1/affiliate/{provider_key}", tags=["affiliate"])
+def affiliate_redirect(provider_key: str) -> RedirectResponse:
+    """Redirect only to a server-configured, allowlisted HTTPS partner URL."""
+    destination = _approved_affiliate_destination(provider_key.strip().lower())
+    if destination is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Affiliate destination is not configured or is invalid.",
+        )
+    return RedirectResponse(url=destination, status_code=302)
 
 
 @app.get("/api/v1/hosting/plans", response_model=list[HostingPlan], tags=["hosting"])
