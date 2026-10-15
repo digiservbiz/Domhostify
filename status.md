@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-10-15  
 **Current phase:** Phase 2 — Domain and hosting comparison prototype  
-**Overall progress:** 39% (frontend suggestions, allowlisted affiliate redirects, and initial SQLAlchemy models/tests committed; runtime tests/CI still require verification)
+**Overall progress:** 41% (frontend suggestions, allowlisted affiliate redirects, initial SQLAlchemy models/tests, and configurable CORS committed; runtime tests/CI still require verification)
 
 ## Executive status
 The repository contains product/engineering documentation, a FastAPI demo API, domain validation tests, a responsive frontend, a registrar adapter contract, an allowlisted affiliate redirect foundation, and initial SQLAlchemy catalog models. Tests and CI have not yet been verified. Database models are not yet integrated into API endpoints, and there is no live provider data or production deployment.
@@ -15,11 +15,11 @@ The repository contains product/engineering documentation, a FastAPI demo API, d
 | Architecture and data boundaries | In progress | 65% | API/frontend boundary, demo-data trust rules, and registrar adapter contract documented |
 | Roadmap and project governance | In progress | 85% | Core project docs and status tracker maintained |
 | Security, privacy, compliance | In progress | 45% | Input validation, configurable CORS origins, allowlisted provider keys, HTTPS-only affiliate destinations; rate limiting and broader controls remain |
-| API implementation | In progress | 50% | Health, domain search via provider contract, hosting plans, listings, filters; not runtime-verified |
+| API implementation | In progress | 55% | Health, domain search/suggestions, hosting plans, listings, and allowlisted affiliate redirects; not runtime-verified |
 | Database and migrations | In progress | 20% | SQLAlchemy models and session factory added; Alembic migrations and API integration remain |
 | Frontend | In progress | 35% | Responsive prototype now calls extension suggestions for bare names and domain search for full domains; not smoke-tested |
 | Provider/affiliate integrations | In progress | 20% | Registrar adapter and allowlisted HTTPS affiliate redirect foundation; no live provider integration or affiliate approval verified |
-| Automated tests and CI | In progress | 30% | Expanded pytest suite and workflow committed; execution result not verified |
+| Automated tests and CI | In progress | 35% | Added affiliate, database-model, and restrictive-CORS tests; execution result not verified |
 | Deployment and monitoring | Not started | 0% | No deployment verified |
 
 ## Verified repository deliverables
@@ -42,7 +42,7 @@ The repository contains product/engineering documentation, a FastAPI demo API, d
 - [x] Local development CORS origins restricted to common localhost ports
 - [x] Production CORS origins can be configured through an environment variable
 - [x] pytest suite and GitHub Actions workflow committed
-- [ ] Tests executed successfully (including new affiliate and database tests)
+- [ ] Tests executed successfully (including new affiliate, database, and CORS tests)
 - [ ] CI result verified
 - [ ] API and frontend smoke-tested together
 - [ ] Production origin configuration documented and tested
