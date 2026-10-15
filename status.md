@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-10-15  
 **Current phase:** Phase 4 — Marketplace security foundation  
-**Overall progress:** 76% (seller listing edit/withdraw endpoints and focused lifecycle tests are committed; runtime verification, real account auth, providers, transactions, and deployment remain outstanding)
+**Overall progress:** 78% (seller listing edit/withdraw lifecycle is committed and GitHub Actions now passes all 41 tests; migrations, real account auth, providers, transactions, and deployment remain outstanding)
 
 ## Executive status
 The marketplace now has separate fail-closed bootstrap boundaries for seller writes/inventory and admin moderation, plus authenticated seller listing submission/inventory reads. Submissions are normalized, stored as `pending_review`, remain unverified/inactive, and create an audit event. Inventory reads filter by the opaque SHA-256-derived seller reference. The seller token is never stored directly. This is a bootstrap boundary, not yet a full user/account identity system.
@@ -19,7 +19,7 @@ The marketplace now has separate fail-closed bootstrap boundaries for seller wri
 | Database and migrations | In progress | 80% | Lifecycle, audit, and ownership-challenge storage committed; execution remains unverified |
 | Frontend | In progress | 35% | Responsive comparison prototype; seller UI not connected |
 | Provider/affiliate integrations | In progress | 30% | Safe affiliate redirect foundation; no live provider access verified |
-| Automated tests and CI | In progress | 77% | Added DNS API and seller edit/withdraw tests; runtime/CI result still unverified |
+| Automated tests and CI | In progress | 84% | GitHub Actions passed 41 tests on 2026-10-15; one warning remains, and migration/smoke verification is pending |
 | Deployment and monitoring | Not started | 0% | No deployment verified |
 
 ## Verified repository deliverables
@@ -50,13 +50,13 @@ The marketplace now has separate fail-closed bootstrap boundaries for seller wri
 - [x] Registrar and hosting persistent read catalogs
 - [x] HTTPS-only allowlisted affiliate redirects with opaque click tracking
 - [x] Responsive frontend prototype
-- [ ] Runtime pytest suite verified
+- [x] Runtime pytest suite verified in GitHub Actions: 41 passed, 1 warning (2026-10-15)
 - [ ] Alembic upgrade/downgrade verified from a clean database
-- [ ] GitHub Actions result verified
+- [x] GitHub Actions CI passed on commit `152d7dad33a59508554950ca076880afc3e0c416`
 - [ ] API/frontend smoke test verified
 - [ ] Full user/account authentication and authorization implemented
 - [x] Authenticated seller DNS TXT challenge and verification endpoints committed (runtime and live DNS behavior still unverified)
-- [x] Seller listing editing and soft withdrawal endpoints committed; changes require renewed moderation, and withdrawal preserves audit history
+- [x] Seller listing editing and soft withdrawal endpoints committed; changes require renewed moderation, withdrawal preserves audit history, and seller isolation is tested
 - [ ] Real per-user seller identities implemented (current bootstrap token maps to one seller identity)
 - [ ] Seller dashboard implemented
 - [ ] Full moderation/admin operations implemented
@@ -75,7 +75,8 @@ The marketplace now has separate fail-closed bootstrap boundaries for seller wri
 - [x] M4 Marketplace visibility lifecycle gates
 - [x] M4.1 Audit-event and ownership-challenge storage foundation
 - [x] M4.2 Bootstrap authentication + seller listing workflow
-- [x] M4.3 Ownership verification API committed; verification pending runtime test/real DNS checks
+- [x] M4.3 Ownership verification API committed; mocked DNS verification test passes, live DNS checks remain pending
+- [x] M4.3.1 Seller listing edit/withdraw lifecycle committed and CI-tested
 - [ ] M4.4 Moderation/admin workflow (bootstrap approve/reject exists; seller listing edit/withdraw now committed)
 - [ ] M5 Transaction workflows
 - [ ] M6 Live provider integrations
