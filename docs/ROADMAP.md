@@ -22,7 +22,8 @@ Progress and blockers live in [status.md](../status.md). Dates are not committed
 - [x] Hosting provider and plan catalog (demo catalog plus persistent verified-plan read endpoint).
 - [x] Clearly labelled demo data.
 - [x] Search/filter/sort endpoints and committed tests (execution still needs verification).
-- [x] First responsive web interface (runtime smoke test still pending).
+- [x] Responsive web interface connected to persistent verified hosting-plan and approved marketplace-listing read endpoints; API URL is configurable.
+- [ ] Add browser/API smoke tests and domain-offer comparison UI.
 
 ## Phase 3 — Affiliate-ready integrations
 - [ ] Inventory provider APIs and affiliate programs.
