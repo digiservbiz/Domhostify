@@ -75,6 +75,72 @@ def _create_listing(published=True):
     return listing_id
 
 
+def _enable_buy_now(Session, listing_id):
+    with Session() as db:
+        listing = db.get(MarketplaceListing, listing_id)
+        listing.sale_type = "buy_now"
+        db.commit()
+
+
+def test_buy_now_reservation_blocks_second_checkout_and_cancel_releases(monkeypatch):
+    engine, Session = _setup(monkeypatch)
+    try:
+        listing_id = _create_listing()
+        _enable_buy_now(Session, listing_id)
+
+        first = client.post(
+            f"/api/v1/marketplace/listings/{listing_id}/buy-now",
+            headers=BUYER_HEADERS,
+        )
+        assert first.status_code == 201
+        intent = first.json()
+        assert intent["status"] == "buy_now_pending"
+        assert intent["payment_status"] == "not_started"
+        assert "No payment has been taken" in intent["message"]
+
+        second = client.post(
+            f"/api/v1/marketplace/listings/{listing_id}/buy-now",
+            headers=BUYER_HEADERS,
+        )
+        assert second.status_code == 409
+
+        cancelled = client.post(
+            f"/api/v1/marketplace/buyer/offers/{intent['id']}/cancel",
+            headers=BUYER_HEADERS,
+        )
+        assert cancelled.status_code == 200
+        assert cancelled.json()["status"] == "cancelled"
+
+        retry = client.post(
+            f"/api/v1/marketplace/listings/{listing_id}/buy-now",
+            headers=BUYER_HEADERS,
+        )
+        assert retry.status_code == 201
+        with Session() as db:
+            listing = db.get(MarketplaceListing, listing_id)
+            assert listing.reservation_transaction_id == retry.json()["id"]
+            assert listing.reserved_until is not None
+            events = db.scalars(select(MarketplaceTransactionEvent).where(
+                MarketplaceTransactionEvent.transaction_id == retry.json()["id"]
+            )).all()
+            assert [event.to_status for event in events] == ["buy_now_pending"]
+    finally:
+        _cleanup(engine)
+
+
+def test_buy_now_requires_sale_type_and_public_listing(monkeypatch):
+    engine, _ = _setup(monkeypatch)
+    try:
+        listing_id = _create_listing()
+        response = client.post(
+            f"/api/v1/marketplace/listings/{listing_id}/buy-now",
+            headers=BUYER_HEADERS,
+        )
+        assert response.status_code == 404
+    finally:
+        _cleanup(engine)
+
+
 def test_buyer_creates_offer_and_seller_accepts_with_audit(monkeypatch):
     engine, Session = _setup(monkeypatch)
     try:
