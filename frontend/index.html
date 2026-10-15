@@ -67,10 +67,18 @@ document.getElementById('domain-form').addEventListener('submit', async event =>
   results.classList.add('show');
   results.innerHTML = '<p>Searching demo catalog…</p>';
   try {
-    const response = await fetch(API_BASE + '/api/v1/domains/search?q=' + encodeURIComponent(query));
+    const hasExtension = query.includes('.');
+    const endpoint = hasExtension
+      ? '/api/v1/domains/search?q=' + encodeURIComponent(query)
+      : '/api/v1/domains/suggestions?q=' + encodeURIComponent(query);
+    const response = await fetch(API_BASE + endpoint);
     const data = await response.json();
     if (!response.ok) throw new Error(data.detail || 'Search failed');
-    results.innerHTML = data.map(item => '<div class="result"><strong>' + escapeHtml(item.domain) + '</strong> <span class="pill">Availability unknown</span><small>' + escapeHtml(item.note) + '</small></div>').join('');
+    if (!Array.isArray(data) || data.length === 0) {
+      results.innerHTML = '<p>No domain candidates returned. Try another name.</p>';
+      return;
+    }
+    results.innerHTML = '<p class="notice">Demo lookup only — no registrar has been queried, so availability is not confirmed.</p>' + data.map(item => '<div class="result"><strong>' + escapeHtml(item.domain) + '</strong> <span class="pill">Availability unknown</span><small>' + escapeHtml(item.note) + '</small></div>').join('');
   } catch (error) {
     results.innerHTML = '<p>Could not reach the API. Start the backend using the README instructions, then try again. ' + escapeHtml(error.message) + '</p>';
   }
