@@ -105,6 +105,11 @@ class SellerListingCreate(BaseModel):
     sale_type: str = Field(default="make_offer", min_length=1, max_length=30)
 
 
+class AdminListingReview(BaseModel):
+    decision: str = Field(min_length=1, max_length=20)
+    note: str | None = Field(default=None, max_length=500)
+
+
 class PersistentHostingPlan(BaseModel):
     id: int
     provider_key: str
@@ -196,6 +201,19 @@ def _approved_affiliate_destination(provider_key: str) -> str | None:
     return destination
 
 
+def _require_admin_auth(authorization: str | None = Header(default=None)) -> str:
+    """Bootstrap admin boundary; disabled until a distinct server-side token is configured."""
+    configured = os.getenv("DOMHOSTIFY_ADMIN_API_TOKEN", "").strip()
+    if not configured:
+        raise HTTPException(status_code=503, detail="Admin authentication is not configured.")
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Bearer authentication required.")
+    supplied = authorization[7:].strip()
+    if not supplied or not hmac.compare_digest(supplied, configured):
+        raise HTTPException(status_code=401, detail="Invalid admin credentials.")
+    return hashlib.sha256(supplied.encode("utf-8")).hexdigest()[:32]
+
+
 def _require_seller_auth(authorization: str | None = Header(default=None)) -> str:
     """Bootstrap seller boundary; disabled until a server-side token is configured."""
     configured = os.getenv("DOMHOSTIFY_SELLER_API_TOKEN", "").strip()
@@ -273,6 +291,59 @@ def list_seller_listings(seller_ref: str = Depends(_require_seller_auth), db: Se
         )
         for r in records
     ]
+
+
+@app.post("/api/v1/admin/marketplace/listings/{listing_id}/review", response_model=PersistentMarketplaceListing, tags=["admin"])
+def review_marketplace_listing(
+    listing_id: int,
+    payload: AdminListingReview,
+    admin_ref: str = Depends(_require_admin_auth),
+    db: Session = Depends(get_db),
+) -> PersistentMarketplaceListing:
+    """Approve only verified ownership; rejection always removes public visibility."""
+    decision = payload.decision.strip().lower()
+    if decision not in {"approve", "reject"}:
+        raise HTTPException(status_code=422, detail="Decision must be approve or reject.")
+    try:
+        listing = db.get(DBMarketplaceListing, listing_id)
+        if listing is None:
+            raise HTTPException(status_code=404, detail="Marketplace listing not found.")
+        if decision == "approve":
+            if listing.ownership_status != "verified":
+                raise HTTPException(status_code=409, detail="Ownership must be verified before approval.")
+            listing.moderation_status = "approved"
+            listing.listing_status = "active"
+            listing.active = True
+            event_type = "admin_listing_approved"
+        else:
+            listing.moderation_status = "rejected"
+            listing.listing_status = "rejected"
+            listing.active = False
+            event_type = "admin_listing_rejected"
+        add_listing_audit_event(
+            db,
+            listing_id=listing.id,
+            event_type=event_type,
+            actor_type="admin",
+            actor_ref=admin_ref,
+            event_note=payload.note.strip() if payload.note else None,
+        )
+        db.commit()
+        db.refresh(listing)
+    except OperationalError as exc:
+        db.rollback()
+        raise HTTPException(status_code=503, detail="Marketplace database is not initialized. Apply database migrations first.") from exc
+    return PersistentMarketplaceListing(
+        id=listing.id,
+        domain=listing.domain,
+        asking_price=listing.asking_price,
+        currency=listing.currency,
+        sale_type=listing.sale_type,
+        listing_status=listing.listing_status,
+        ownership_status=listing.ownership_status,
+        moderation_status=listing.moderation_status,
+        updated_at=listing.updated_at.isoformat() if listing.updated_at else None,
+    )
 
 
 @app.get("/api/v1/hosting/plans", response_model=list[HostingPlan], tags=["hosting"])
