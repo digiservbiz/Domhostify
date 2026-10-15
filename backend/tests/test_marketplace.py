@@ -63,3 +63,22 @@ def test_listing_audit_event_is_bounded_and_append_only() -> None:
             assert stored.event_note == "Submitted for review"
     finally:
         engine.dispose()
+
+
+def test_ownership_proof_consumes_challenge_once() -> None:
+    from backend.app.database import MarketplaceListing
+    from backend.app.marketplace import create_ownership_challenge
+    from backend.app.ownership import verify_listing_ownership
+
+    engine, Session = _session()
+    try:
+        with Session() as db:
+            listing = MarketplaceListing(domain="once.example", asking_price=100, seller_ref="s1")
+            db.add(listing)
+            db.flush()
+            challenge, token = create_ownership_challenge(db, listing_id=listing.id, domain=listing.domain)
+            assert verify_listing_ownership(db, listing=listing, challenge=challenge, txt_values=[token], actor_ref="s1")
+            assert not verify_listing_ownership(db, listing=listing, challenge=challenge, txt_values=[token], actor_ref="s1")
+            assert listing.ownership_status == "verified"
+    finally:
+        engine.dispose()
