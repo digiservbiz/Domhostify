@@ -16,7 +16,7 @@
 3. Registrar catalog: provider metadata and registration/renewal/transfer offers.
 4. Hosting catalog: providers, plans, normalized features, pricing.
 5. Affiliate attribution: approved destinations, opaque click IDs, reporting.
-6. Aftermarket marketplace: domain listings, ownership checks, listing search/status.
+6. Aftermarket marketplace: domain listings, ownership checks, listing search/status. Seller ownership endpoints issue hashed one-time DNS TXT challenges and verify through a bounded DNS lookup; verified listings remain pending admin moderation.
 7. AI recommendations: later; explain factors and disclose sponsorship.
 8. Identity/admin: later; roles, audit trail, moderation, seller tools.
 
