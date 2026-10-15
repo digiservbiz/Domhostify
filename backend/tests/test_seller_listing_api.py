@@ -71,3 +71,41 @@ def test_seller_listing_enters_review_and_is_not_public(monkeypatch) -> None:
         app.dependency_overrides.pop(get_db, None)
         Base.metadata.drop_all(bind=engine)
         engine.dispose()
+
+
+def test_seller_inventory_requires_auth_and_returns_only_owned_listings(monkeypatch) -> None:
+    engine, TestSession = _client_with_database(monkeypatch)
+    try:
+        unauthenticated = client.get("/api/v1/marketplace/seller/listings")
+        assert unauthenticated.status_code == 401
+
+        created = client.post(
+            "/api/v1/marketplace/seller/listings",
+            headers={"Authorization": "Bearer test-seller-token"},
+            json={"domain": "owned-example.com", "asking_price": 99},
+        )
+        assert created.status_code == 201
+
+        with TestSession() as session:
+            session.add(MarketplaceListing(
+                domain="other-seller.com",
+                asking_price=500,
+                seller_ref="different-seller-reference",
+                listing_status="pending_review",
+                ownership_status="unverified",
+                moderation_status="pending",
+                active=False,
+            ))
+            session.commit()
+
+        response = client.get(
+            "/api/v1/marketplace/seller/listings",
+            headers={"Authorization": "Bearer test-seller-token"},
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert [item["domain"] for item in body] == ["owned-example.com"]
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+        Base.metadata.drop_all(bind=engine)
+        engine.dispose()
