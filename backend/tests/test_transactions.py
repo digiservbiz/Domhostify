@@ -1,4 +1,3 @@
-from datetime import timezone
 from decimal import Decimal
 
 import pytest
@@ -94,7 +93,6 @@ def test_completed_transition_sets_completion_timestamp():
                 actor_type="transfer_provider",
             )
             assert transaction.completed_at is not None
-            assert transaction.completed_at.tzinfo is not None or transaction.completed_at.tzinfo is None
     finally:
         engine.dispose()
 
