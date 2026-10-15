@@ -19,27 +19,11 @@ from sqlalchemy.orm import Session
 from backend.app.database import AffiliateClick as DBAffiliateClick, HostingPlanRecord as DBHostingPlan, MarketplaceListing as DBMarketplaceListing, RegistrarOffer as DBRegistrarOffer, get_db
 from backend.app.providers import DemoRegistrarProvider
 
-app = FastAPI(
-    title="DomHostify API",
-    description=(
-        "Domain discovery, hosting comparison, and domain marketplace API. "
-        "Catalog entries currently use illustrative demo data, not live offers."
-    ),
-    version="0.2.0",
-)
+app = FastAPI(title="DomHostify API", description="Domain discovery, hosting comparison, and domain marketplace API. Catalog entries currently use illustrative demo data, not live offers.", version="0.2.0")
 
-# Restrict browser access to common local development origins. Production origins
-# must be explicitly configured before deployment.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        origin.strip()
-        for origin in os.getenv(
-            "CORS_ALLOWED_ORIGINS",
-            "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5500,http://127.0.0.1:5500",
-        ).split(",")
-        if origin.strip()
-    ],
+    allow_origins=[origin.strip() for origin in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5500,http://127.0.0.1:5500").split(",") if origin.strip()],
     allow_credentials=False,
     allow_methods=["GET"],
     allow_headers=["Content-Type"],
@@ -50,30 +34,19 @@ _DEMO_REGISTRAR = DemoRegistrarProvider()
 
 
 def normalize_domain_query(value: str) -> str:
-    """Normalize a domain candidate and reject malformed hostnames.
-
-    Bare names default to .com for the demo UX. This is not an availability check.
-    """
     candidate = value.strip().lower().rstrip(".")
     if not candidate or len(candidate) > 253:
         raise ValueError("Enter a valid domain name.")
-
-    if any(char.isspace() for char in candidate) or any(
-        char in candidate for char in "/\\:@?#"
-    ):
+    if any(char.isspace() for char in candidate) or any(char in candidate for char in "/\\:@?#"):
         raise ValueError("Enter a domain name without spaces, paths, or URL components.")
-
     if "." not in candidate:
         candidate = f"{candidate}.com"
-
     labels = candidate.split(".")
     if len(labels) < 2 or any(not _LABEL_RE.fullmatch(label) for label in labels):
         raise ValueError("Enter a valid domain name with valid label characters.")
-
     tld = labels[-1]
     if len(tld) < 2 and not tld.startswith("xn--"):
         raise ValueError("The domain extension must contain at least two characters.")
-
     return candidate
 
 
@@ -116,6 +89,9 @@ class PersistentMarketplaceListing(BaseModel):
     currency: str
     sale_type: str
     listing_status: str
+    ownership_status: str
+    moderation_status: str
+    updated_at: str | None = None
     data_status: str = "database"
 
 
@@ -149,28 +125,9 @@ class RegistrarOfferResult(BaseModel):
 
 
 DEMO_HOSTING_PLANS = [
-    HostingPlan(
-        provider="ExampleHost",
-        plan_name="Starter Web",
-        site_type="Portfolio or small business",
-        introductory_price=3.99,
-        renewal_price=7.99,
-        billing_period="month",
-        storage="20 GB SSD (illustrative)",
-        support="Email support (illustrative)",
-    ),
-    HostingPlan(
-        provider="ExampleCloud",
-        plan_name="Business Managed",
-        site_type="Business site or growing store",
-        introductory_price=9.99,
-        renewal_price=14.99,
-        billing_period="month",
-        storage="50 GB SSD (illustrative)",
-        support="Priority support (illustrative)",
-    ),
+    HostingPlan(provider="ExampleHost", plan_name="Starter Web", site_type="Portfolio or small business", introductory_price=3.99, renewal_price=7.99, billing_period="month", storage="20 GB SSD (illustrative)", support="Email support (illustrative)"),
+    HostingPlan(provider="ExampleCloud", plan_name="Business Managed", site_type="Business site or growing store", introductory_price=9.99, renewal_price=14.99, billing_period="month", storage="50 GB SSD (illustrative)", support="Priority support (illustrative)"),
 ]
-
 DEMO_LISTINGS = [
     MarketplaceListing(domain="examplebrand.com", asking_price=2500.00, sale_type="buy_now"),
     MarketplaceListing(domain="sampleproject.io", asking_price=850.00, sale_type="make_offer"),
@@ -179,90 +136,44 @@ DEMO_LISTINGS = [
 
 @app.get("/health", tags=["operations"])
 def health() -> dict[str, str]:
-    """Liveness check; does not claim external providers are available."""
     return {"status": "ok", "service": "domhostify-api"}
 
 
 @app.get("/ready", tags=["operations"])
 def ready() -> dict[str, str]:
-    """Readiness check for the current stateless demo API."""
     return {"status": "ready", "dependencies": "no external dependencies configured"}
 
 
 @app.get("/api/v1/domains/search", response_model=list[DomainSearchResult], tags=["domains"])
-def search_domains(
-    q: str = Query(min_length=2, max_length=253, description="Domain name or candidate name"),
-) -> list[DomainSearchResult]:
-    """Return a demo result; it does not query a registrar."""
+def search_domains(q: str = Query(min_length=2, max_length=253, description="Domain name or candidate name")) -> list[DomainSearchResult]:
     try:
         candidate = normalize_domain_query(q)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-
     result = _DEMO_REGISTRAR.check_domain(candidate)
-    return [
-        DomainSearchResult(
-            domain=result.domain,
-            availability=result.availability,
-            source_status=result.source_status,
-            provider_key=result.provider_key,
-            checked_at=result.checked_at,
-            note=result.note,
-        )
-    ]
+    return [DomainSearchResult(domain=result.domain, availability=result.availability, source_status=result.source_status, provider_key=result.provider_key, checked_at=result.checked_at, note=result.note)]
 
 
 @app.get("/api/v1/domains/suggestions", response_model=list[DomainSearchResult], tags=["domains"])
-def suggest_domain_extensions(
-    q: str = Query(min_length=1, max_length=63, description="Single-label brand candidate"),
-    extensions: str = Query(default="com,net,org,io", max_length=100),
-) -> list[DomainSearchResult]:
-    """Return clearly labelled demo checks for a bounded list of extensions."""
+def suggest_domain_extensions(q: str = Query(min_length=1, max_length=63), extensions: str = Query(default="com,net,org,io", max_length=100)) -> list[DomainSearchResult]:
     base = q.strip().lower()
     if not _LABEL_RE.fullmatch(base):
-        raise HTTPException(
-            status_code=422,
-            detail="Enter a single domain label without an extension or URL components.",
-        )
-
+        raise HTTPException(status_code=422, detail="Enter a single domain label without an extension or URL components.")
     requested = [item.strip().lower().lstrip(".") for item in extensions.split(",")]
-    if not requested or len(requested) > 10 or any(
-        not item or not _LABEL_RE.fullmatch(item) for item in requested
-    ):
-        raise HTTPException(
-            status_code=422,
-            detail="Choose between 1 and 10 valid domain extensions.",
-        )
-
-    candidates = list(dict.fromkeys(requested))
-    results: list[DomainSearchResult] = []
-    for extension in candidates:
-        try:
-            domain = normalize_domain_query(f"{base}.{extension}")
-        except ValueError as exc:
-            raise HTTPException(status_code=422, detail=str(exc)) from exc
+    if not requested or len(requested) > 10 or any(not item or not _LABEL_RE.fullmatch(item) for item in requested):
+        raise HTTPException(status_code=422, detail="Choose between 1 and 10 valid domain extensions.")
+    results = []
+    for extension in list(dict.fromkeys(requested)):
+        domain = normalize_domain_query(f"{base}.{extension}")
         result = _DEMO_REGISTRAR.check_domain(domain)
-        results.append(
-            DomainSearchResult(
-                domain=result.domain,
-                availability=result.availability,
-                source_status=result.source_status,
-                provider_key=result.provider_key,
-                checked_at=result.checked_at,
-                note=result.note,
-            )
-        )
+        results.append(DomainSearchResult(domain=result.domain, availability=result.availability, source_status=result.source_status, provider_key=result.provider_key, checked_at=result.checked_at, note=result.note))
     return results
 
 
-_AFFILIATE_ENV_KEYS = {
-    "examplehost": "AFFILIATE_URL_EXAMPLEHOST",
-    "examplecloud": "AFFILIATE_URL_EXAMPLECLOUD",
-}
+_AFFILIATE_ENV_KEYS = {"examplehost": "AFFILIATE_URL_EXAMPLEHOST", "examplecloud": "AFFILIATE_URL_EXAMPLECLOUD"}
 
 
 def _approved_affiliate_destination(provider_key: str) -> str | None:
-    """Return a configured HTTPS destination for an allowlisted provider only."""
     env_key = _AFFILIATE_ENV_KEYS.get(provider_key)
     if env_key is None:
         raise HTTPException(status_code=404, detail="Unknown affiliate provider.")
@@ -277,33 +188,22 @@ def _approved_affiliate_destination(provider_key: str) -> str | None:
 
 @app.get("/api/v1/affiliate/{provider_key}", tags=["affiliate"])
 def affiliate_redirect(provider_key: str, db: Session = Depends(get_db)) -> RedirectResponse:
-    """Record an opaque click event, then redirect to the configured HTTPS partner."""
     normalized_key = provider_key.strip().lower()
     destination = _approved_affiliate_destination(normalized_key)
     if destination is None:
-        raise HTTPException(
-            status_code=503,
-            detail="Affiliate destination is not configured or is invalid.",
-        )
+        raise HTTPException(status_code=503, detail="Affiliate destination is not configured or is invalid.")
     click = DBAffiliateClick(click_id=str(uuid.uuid4()), provider_key=normalized_key)
     try:
         db.add(click)
         db.commit()
     except OperationalError as exc:
         db.rollback()
-        raise HTTPException(
-            status_code=503,
-            detail="Affiliate tracking database is not initialized. Apply database migrations first.",
-        ) from exc
+        raise HTTPException(status_code=503, detail="Affiliate tracking database is not initialized. Apply database migrations first.") from exc
     return RedirectResponse(url=destination, status_code=302)
 
 
 @app.get("/api/v1/hosting/plans", response_model=list[HostingPlan], tags=["hosting"])
-def list_hosting_plans(
-    site_type: str | None = Query(default=None, max_length=80),
-    max_price: float | None = Query(default=None, ge=0),
-) -> list[HostingPlan]:
-    """List illustrative plans; these are not real provider offers."""
+def list_hosting_plans(site_type: str | None = Query(default=None, max_length=80), max_price: float | None = Query(default=None, ge=0)) -> list[HostingPlan]:
     plans = DEMO_HOSTING_PLANS
     if site_type:
         needle = site_type.casefold().strip()
@@ -314,11 +214,7 @@ def list_hosting_plans(
 
 
 @app.get("/api/v1/marketplace/listings", response_model=list[MarketplaceListing], tags=["marketplace"])
-def list_marketplace_listings(
-    q: str | None = Query(default=None, max_length=253),
-    max_price: float | None = Query(default=None, ge=0),
-) -> list[MarketplaceListing]:
-    """Browse illustrative aftermarket listings; no real seller inventory is connected."""
+def list_marketplace_listings(q: str | None = Query(default=None, max_length=253), max_price: float | None = Query(default=None, ge=0)) -> list[MarketplaceListing]:
     listings = DEMO_LISTINGS
     if q:
         needle = q.casefold().strip()
@@ -328,137 +224,56 @@ def list_marketplace_listings(
     return listings
 
 
-@app.get(
-    "/api/v1/hosting/persistent-plans",
-    response_model=list[PersistentHostingPlan],
-    tags=["hosting"],
-)
-def list_persistent_hosting_plans(
-    site_type: str | None = Query(default=None, max_length=120),
-    max_price: float | None = Query(default=None, ge=0),
-    db: Session = Depends(get_db),
-) -> list[PersistentHostingPlan]:
-    """Return stored active, verified, priced hosting plans; no live provider calls occur."""
-    statement = select(DBHostingPlan).where(
-        DBHostingPlan.active.is_(True),
-        DBHostingPlan.source_status == "verified",
-        DBHostingPlan.introductory_price.is_not(None),
-    )
+@app.get("/api/v1/hosting/persistent-plans", response_model=list[PersistentHostingPlan], tags=["hosting"])
+def list_persistent_hosting_plans(site_type: str | None = Query(default=None, max_length=120), max_price: float | None = Query(default=None, ge=0), db: Session = Depends(get_db)) -> list[PersistentHostingPlan]:
+    statement = select(DBHostingPlan).where(DBHostingPlan.active.is_(True), DBHostingPlan.source_status == "verified", DBHostingPlan.introductory_price.is_not(None))
     if site_type and site_type.strip():
         statement = statement.where(DBHostingPlan.site_type.ilike(f"%{site_type.strip()}%"))
     if max_price is not None:
         statement = statement.where(DBHostingPlan.introductory_price <= max_price)
-    statement = statement.order_by(DBHostingPlan.introductory_price.asc()).limit(100)
     try:
-        records = db.scalars(statement).all()
+        records = db.scalars(statement.order_by(DBHostingPlan.introductory_price.asc()).limit(100)).all()
     except OperationalError as exc:
-        raise HTTPException(
-            status_code=503,
-            detail="Hosting catalog database is not initialized. Apply database migrations first.",
-        ) from exc
-    return [
-        PersistentHostingPlan(
-            id=record.id,
-            provider_key=record.provider_key,
-            plan_name=record.plan_name,
-            site_type=record.site_type,
-            introductory_price=record.introductory_price,
-            renewal_price=record.renewal_price,
-            currency=record.currency,
-            billing_period=record.billing_period,
-            storage=record.storage,
-            support=record.support,
-            checked_at=record.checked_at.isoformat() if record.checked_at else None,
-            source_status=record.source_status,
-        )
-        for record in records
-    ]
+        raise HTTPException(status_code=503, detail="Hosting catalog database is not initialized. Apply database migrations first.") from exc
+    return [PersistentHostingPlan(id=r.id, provider_key=r.provider_key, plan_name=r.plan_name, site_type=r.site_type, introductory_price=r.introductory_price, renewal_price=r.renewal_price, currency=r.currency, billing_period=r.billing_period, storage=r.storage, support=r.support, checked_at=r.checked_at.isoformat() if r.checked_at else None, source_status=r.source_status) for r in records]
 
 
-@app.get(
-    "/api/v1/marketplace/persistent-listings",
-    response_model=list[PersistentMarketplaceListing],
-    tags=["marketplace"],
-)
-def list_persistent_marketplace_listings(
-    q: str | None = Query(default=None, max_length=253),
-    max_price: float | None = Query(default=None, ge=0),
-    db: Session = Depends(get_db),
-) -> list[PersistentMarketplaceListing]:
-    """Return only explicitly active listings stored in the configured database."""
-    statement = select(DBMarketplaceListing).where(
-        DBMarketplaceListing.active.is_(True),
-        DBMarketplaceListing.listing_status == "active",
-    )
+@app.get("/api/v1/marketplace/persistent-listings", response_model=list[PersistentMarketplaceListing], tags=["marketplace"])
+def list_persistent_marketplace_listings(q: str | None = Query(default=None, max_length=253), max_price: float | None = Query(default=None, ge=0), db: Session = Depends(get_db)) -> list[PersistentMarketplaceListing]:
+    statement = select(DBMarketplaceListing).where(DBMarketplaceListing.active.is_(True), DBMarketplaceListing.listing_status == "active", DBMarketplaceListing.ownership_status == "verified", DBMarketplaceListing.moderation_status == "approved")
     if q and q.strip():
         statement = statement.where(DBMarketplaceListing.domain.ilike(f"%{q.strip()}%"))
     if max_price is not None:
         statement = statement.where(DBMarketplaceListing.asking_price <= max_price)
-    statement = statement.order_by(DBMarketplaceListing.created_at.desc()).limit(100)
     try:
-        records = db.scalars(statement).all()
+        records = db.scalars(statement.order_by(DBMarketplaceListing.created_at.desc()).limit(100)).all()
     except OperationalError as exc:
-        raise HTTPException(
-            status_code=503,
-            detail="Marketplace database is not initialized. Apply database migrations first.",
-        ) from exc
-    return [
-        PersistentMarketplaceListing(
-            id=record.id,
-            domain=record.domain,
-            asking_price=record.asking_price,
-            currency=record.currency,
-            sale_type=record.sale_type,
-            listing_status=record.listing_status,
-        )
-        for record in records
-    ]
+        raise HTTPException(status_code=503, detail="Marketplace database is not initialized. Apply database migrations first.") from exc
+    return [PersistentMarketplaceListing(id=r.id, domain=r.domain, asking_price=r.asking_price, currency=r.currency, sale_type=r.sale_type, listing_status=r.listing_status, ownership_status=r.ownership_status, moderation_status=r.moderation_status, updated_at=r.updated_at.isoformat() if r.updated_at else None) for r in records]
 
 
-@app.get(
-    "/api/v1/domains/offers",
-    response_model=list[RegistrarOfferResult],
-    tags=["domains"],
-)
-def list_verified_registrar_offers(
-    domain: str = Query(min_length=4, max_length=253),
-    db: Session = Depends(get_db),
-) -> list[RegistrarOfferResult]:
-    """Return only persisted registrar offers explicitly marked verified and priced.
+@app.get("/api/v1/marketplace/persistent-listings/{listing_id}", response_model=PersistentMarketplaceListing, tags=["marketplace"])
+def get_persistent_marketplace_listing(listing_id: int, db: Session = Depends(get_db)) -> PersistentMarketplaceListing:
+    """Return one publicly visible listing only after ownership and moderation approval."""
+    statement = select(DBMarketplaceListing).where(DBMarketplaceListing.id == listing_id, DBMarketplaceListing.active.is_(True), DBMarketplaceListing.listing_status == "active", DBMarketplaceListing.ownership_status == "verified", DBMarketplaceListing.moderation_status == "approved")
+    try:
+        record = db.scalar(statement)
+    except OperationalError as exc:
+        raise HTTPException(status_code=503, detail="Marketplace database is not initialized. Apply database migrations first.") from exc
+    if record is None:
+        raise HTTPException(status_code=404, detail="Marketplace listing not found.")
+    return PersistentMarketplaceListing(id=record.id, domain=record.domain, asking_price=record.asking_price, currency=record.currency, sale_type=record.sale_type, listing_status=record.listing_status, ownership_status=record.ownership_status, moderation_status=record.moderation_status, updated_at=record.updated_at.isoformat() if record.updated_at else None)
 
-    This endpoint does not perform live availability checks. Callers must use
-    source_status and checked_at to assess the stored provider result's freshness.
-    """
+
+@app.get("/api/v1/domains/offers", response_model=list[RegistrarOfferResult], tags=["domains"])
+def list_verified_registrar_offers(domain: str = Query(min_length=4, max_length=253), db: Session = Depends(get_db)) -> list[RegistrarOfferResult]:
     try:
         normalized_domain = normalize_domain_query(domain)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-
-    statement = (
-        select(DBRegistrarOffer)
-        .where(
-            DBRegistrarOffer.domain == normalized_domain,
-            DBRegistrarOffer.source_status == "verified",
-            DBRegistrarOffer.registration_price.is_not(None),
-        )
-        .order_by(DBRegistrarOffer.registration_price.asc())
-        .limit(100)
-    )
+    statement = select(DBRegistrarOffer).where(DBRegistrarOffer.domain == normalized_domain, DBRegistrarOffer.source_status == "verified", DBRegistrarOffer.registration_price.is_not(None)).order_by(DBRegistrarOffer.registration_price.asc()).limit(100)
     try:
         records = db.scalars(statement).all()
     except OperationalError as exc:
         raise HTTPException(status_code=503, detail="Registrar catalog database is not initialized. Apply database migrations first.") from exc
-    return [
-        RegistrarOfferResult(
-            id=record.id,
-            domain=record.domain,
-            registrar_key=record.registrar_key,
-            availability=record.availability,
-            registration_price=record.registration_price,
-            renewal_price=record.renewal_price,
-            currency=record.currency,
-            checked_at=record.checked_at.isoformat() if record.checked_at else None,
-            source_status=record.source_status,
-        )
-        for record in records
-    ]
+    return [RegistrarOfferResult(id=r.id, domain=r.domain, registrar_key=r.registrar_key, availability=r.availability, registration_price=r.registration_price, renewal_price=r.renewal_price, currency=r.currency, checked_at=r.checked_at.isoformat() if r.checked_at else None, source_status=r.source_status) for r in records]
