@@ -43,7 +43,7 @@ def test_domain_search_returns_unknown_availability() -> None:
     assert response.status_code == 200
     result = response.json()[0]
     assert result["availability"] == "unknown"
-    assert result["source_status"] == "demo"
+    assert result["source_status"] == "demo_only"
 
 
 def test_domain_suggestions_rejects_invalid_brand_or_extensions() -> None:
@@ -116,8 +116,15 @@ def test_affiliate_redirect_fails_closed_when_tracking_schema_is_missing(monkeyp
 
 
 def test_cors_does_not_allow_all_origins_by_default() -> None:
-    cors = next(middleware for middleware in app.user_middleware if middleware.cls.__name__ == "CORSMiddleware")
-    assert "*" not in cors.options["allow_origins"]
+    response = client.options(
+        "/health",
+        headers={
+            "Origin": "https://attacker.example",
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+    assert response.status_code == 400
+    assert "access-control-allow-origin" not in response.headers
 
 
 def _marketplace_client_with_rows(rows):
