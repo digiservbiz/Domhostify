@@ -12,7 +12,7 @@ from decimal import Decimal
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import or_, select, update
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session
 
 from backend.app.database import (
@@ -123,11 +123,38 @@ def create_offer(
 @router.post("/api/v1/marketplace/listings/{listing_id}/buy-now", status_code=201)
 def create_buy_now_intent(
     listing_id: int,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
     buyer_ref: str = Depends(_require_buyer_auth),
     db: Session = Depends(get_db),
 ) -> dict:
     """Create a ten-minute reservation intent; no payment is collected."""
     now = utc_now()
+    if not idempotency_key or not idempotency_key.strip() or len(idempotency_key) > 128:
+        raise HTTPException(status_code=400, detail="A non-empty Idempotency-Key header (max 128 characters) is required.")
+
+    existing = db.scalar(select(MarketplaceTransaction).where(
+        MarketplaceTransaction.buyer_ref == buyer_ref,
+        MarketplaceTransaction.idempotency_key == idempotency_key,
+    ))
+    if existing is not None:
+        if existing.listing_id != listing_id or existing.transaction_type != "buy_now":
+            raise HTTPException(status_code=409, detail="Idempotency key was already used for a different request.")
+        listing = db.get(MarketplaceListing, listing_id)
+        if (
+            existing.status == "buy_now_pending"
+            and existing.expires_at is not None
+            and existing.expires_at > now
+            and listing is not None
+            and listing.reservation_transaction_id == existing.id
+        ):
+            return {
+                **_offer_payload(existing, listing.domain),
+                "reservation_expires_at": existing.expires_at.isoformat(),
+                "payment_status": "not_started",
+                "message": "Existing reservation returned. No payment has been taken.",
+            }
+        raise HTTPException(status_code=409, detail="This idempotency key belongs to an expired or closed reservation. Use a new key.")
+
     expires_at = now + timedelta(minutes=10)
     try:
         listing = db.scalar(select(MarketplaceListing).where(
@@ -150,6 +177,7 @@ def create_buy_now_intent(
             buyer_ref=buyer_ref,
             seller_ref=listing.seller_ref,
             transaction_type="buy_now",
+            idempotency_key=idempotency_key,
             amount=Decimal(str(listing.asking_price)).quantize(Decimal("0.01")),
             currency=listing.currency,
             status="buy_now_pending",
@@ -158,8 +186,8 @@ def create_buy_now_intent(
         db.add(transaction)
         db.flush()
 
-        # A conditional UPDATE is the atomic gate: only one concurrent buyer can
-        # reserve a currently available or expired reservation.
+        # Conditional UPDATE is the atomic gate: one buyer can reserve an
+        # available listing, or replace a reservation that has expired.
         reserved = db.execute(update(MarketplaceListing).where(
             MarketplaceListing.id == listing.id,
             MarketplaceListing.active.is_(True),
@@ -196,6 +224,23 @@ def create_buy_now_intent(
             "payment_status": "not_started",
             "message": "Reservation created. No payment has been taken.",
         }
+    except IntegrityError as exc:
+        db.rollback()
+        # A simultaneous retry with the same key may have committed first.
+        existing = db.scalar(select(MarketplaceTransaction).where(
+            MarketplaceTransaction.buyer_ref == buyer_ref,
+            MarketplaceTransaction.idempotency_key == idempotency_key,
+        ))
+        if existing is not None and existing.listing_id == listing_id:
+            listing = db.get(MarketplaceListing, listing_id)
+            if listing is not None and listing.reservation_transaction_id == existing.id:
+                return {
+                    **_offer_payload(existing, listing.domain),
+                    "reservation_expires_at": existing.expires_at.isoformat() if existing.expires_at else None,
+                    "payment_status": "not_started",
+                    "message": "Existing reservation returned. No payment has been taken.",
+                }
+        raise HTTPException(status_code=409, detail="Idempotency key conflict; retry with the original request or a new key.") from exc
     except OperationalError as exc:
         db.rollback()
         raise HTTPException(status_code=503, detail="Marketplace database is not initialized. Apply database migrations first.") from exc
