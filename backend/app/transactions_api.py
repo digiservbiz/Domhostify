@@ -171,7 +171,7 @@ def create_buy_now_intent(
                 MarketplaceListing.reserved_until.is_(None),
                 MarketplaceListing.reserved_until <= now,
             ),
-        ).values(
+        ).execution_options(synchronize_session=False).values(
             reservation_transaction_id=transaction.id,
             reserved_until=expires_at,
             updated_at=now,
@@ -311,7 +311,7 @@ def cancel_buyer_offer(
             db.execute(update(MarketplaceListing).where(
                 MarketplaceListing.id == transaction.listing_id,
                 MarketplaceListing.reservation_transaction_id == transaction.id,
-            ).values(
+            ).execution_options(synchronize_session=False).values(
                 reservation_transaction_id=None,
                 reserved_until=None,
                 updated_at=utc_now(),
