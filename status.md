@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-10-15  
 **Current phase:** Phase 4 — Marketplace security foundation  
-**Overall progress:** 74% (authenticated seller DNS challenge/verification routes and focused API tests are committed; runtime verification, real account auth, providers, transactions, and deployment remain outstanding)
+**Overall progress:** 76% (seller listing edit/withdraw endpoints and focused lifecycle tests are committed; runtime verification, real account auth, providers, transactions, and deployment remain outstanding)
 
 ## Executive status
 The marketplace now has separate fail-closed bootstrap boundaries for seller writes/inventory and admin moderation, plus authenticated seller listing submission/inventory reads. Submissions are normalized, stored as `pending_review`, remain unverified/inactive, and create an audit event. Inventory reads filter by the opaque SHA-256-derived seller reference. The seller token is never stored directly. This is a bootstrap boundary, not yet a full user/account identity system.
@@ -15,11 +15,11 @@ The marketplace now has separate fail-closed bootstrap boundaries for seller wri
 | Architecture and data boundaries | In progress | 78% | Seller auth boundary and marketplace trust gates defined |
 | Roadmap and project governance | In progress | 90% | Status and migration sequence maintained |
 | Security, privacy, compliance | In progress | 78% | Seller/admin bootstrap boundaries, hashed one-time DNS proof, bounded DNS lookup, audit trail; full auth/abuse controls remain |
-| API implementation | In progress | 92% | Public reads gated; seller submission/inventory, admin moderation, and authenticated DNS ownership endpoints committed; runtime verification outstanding |
+| API implementation | In progress | 94% | Seller submission/inventory, edit/withdraw lifecycle, admin moderation, and authenticated DNS ownership endpoints committed; runtime verification outstanding |
 | Database and migrations | In progress | 80% | Lifecycle, audit, and ownership-challenge storage committed; execution remains unverified |
 | Frontend | In progress | 35% | Responsive comparison prototype; seller UI not connected |
 | Provider/affiliate integrations | In progress | 30% | Safe affiliate redirect foundation; no live provider access verified |
-| Automated tests and CI | In progress | 75% | Added DNS API tests for challenge creation, verification, seller isolation, and expiry; runtime/CI result still unverified |
+| Automated tests and CI | In progress | 77% | Added DNS API and seller edit/withdraw tests; runtime/CI result still unverified |
 | Deployment and monitoring | Not started | 0% | No deployment verified |
 
 ## Verified repository deliverables
@@ -56,7 +56,7 @@ The marketplace now has separate fail-closed bootstrap boundaries for seller wri
 - [ ] API/frontend smoke test verified
 - [ ] Full user/account authentication and authorization implemented
 - [x] Authenticated seller DNS TXT challenge and verification endpoints committed (runtime and live DNS behavior still unverified)
-- [ ] Seller listing editing/deletion implemented
+- [x] Seller listing editing and soft withdrawal endpoints committed; changes require renewed moderation, and withdrawal preserves audit history
 - [ ] Real per-user seller identities implemented (current bootstrap token maps to one seller identity)
 - [ ] Seller dashboard implemented
 - [ ] Full moderation/admin operations implemented
@@ -76,7 +76,7 @@ The marketplace now has separate fail-closed bootstrap boundaries for seller wri
 - [x] M4.1 Audit-event and ownership-challenge storage foundation
 - [x] M4.2 Bootstrap authentication + seller listing workflow
 - [x] M4.3 Ownership verification API committed; verification pending runtime test/real DNS checks
-- [ ] M4.4 Moderation/admin workflow
+- [ ] M4.4 Moderation/admin workflow (bootstrap approve/reject exists; seller listing edit/withdraw now committed)
 - [ ] M5 Transaction workflows
 - [ ] M6 Live provider integrations
 - [ ] M7 Production staging and launch verification
@@ -88,7 +88,7 @@ The marketplace now has separate fail-closed bootstrap boundaries for seller wri
 - Domain availability remains unknown because no live registrar is queried.
 - Hosting and aftermarket catalog records remain illustrative/database-supplied until verified feeds are connected.
 - Authenticated seller ownership-challenge and verification endpoints now exist in code. They issue a 30-minute TXT token, resolve TXT with a 4-second DNS lifetime, consume a valid challenge once, and keep listings unpublished pending moderation. Runtime tests and live DNS behavior remain unverified.
-- Seller editing/deletion and full admin tooling are not implemented. A bootstrap approve/reject endpoint exists; it requires a separate admin token and refuses approval until ownership is marked verified.
+- Seller listing editing and soft withdrawal endpoints are committed. Edits unpublish the listing and reset moderation to pending; withdrawal preserves the record/audit history. Runtime behavior remains unverified. Full admin tooling is still incomplete; bootstrap approve/reject requires a separate admin token and refuses approval until ownership is verified.
 - Seller inventory currently uses a single configured bootstrap token; do not issue it to multiple sellers. A real account/session/role system is required for multi-seller production use.
 - Payments, transfers, abuse prevention, and auctions remain unimplemented.
 
