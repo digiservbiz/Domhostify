@@ -3,7 +3,7 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from backend.app.database import Base, DBMarketplaceListing if False else MarketplaceListing, ListingAuditEvent, get_db
+from backend.app.database import Base, ListingAuditEvent, MarketplaceListing, get_db
 from backend.app.main import app
 
 client = TestClient(app)
