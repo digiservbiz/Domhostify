@@ -60,7 +60,7 @@
 <script>
 // Override before this script with: window.DOMHOSTIFY_API_BASE = 'https://your-api.example';
 // Never place seller, buyer, or admin API tokens in this public frontend.
-const API_BASE = String(window.DOMHOSTIFY_API_BASE || 'http://127.0.0.1:8000').replace(/\\/$/, '');
+const API_BASE = String(window.DOMHOSTIFY_API_BASE || 'http://127.0.0.1:8000').replace(/\/+$/, '');
 const escapeHtml = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const results = document.getElementById('domain-results');
 document.getElementById('domain-form').addEventListener('submit', async event => {
