@@ -1,7 +1,7 @@
-"""Authenticated bootstrap API for marketplace make-offer workflows.
+"""Authenticated bootstrap API for Make Offer and temporary Buy Now intents.
 
-This supports offers only. It does not collect payments, reserve a domain for checkout,
-or perform transfers. Buyer/seller tokens are single-identity bootstrap credentials.
+Buy Now reservations only hold a listing briefly; they do not collect payments or
+perform transfers. Buyer/seller tokens are single-identity bootstrap credentials.
 """
 import hashlib
 import hmac
