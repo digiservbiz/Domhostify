@@ -1,9 +1,10 @@
 """DomHostify API bootstrap.
 
-The current catalog is illustrative demo data, not live provider pricing.
-Replace demo repositories with provider-backed adapters only after access and
-affiliate terms have been verified.
+All catalog entries are illustrative demo data. Live provider adapters are not
+configured, so domain availability must remain unknown.
 """
+import re
+
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -13,13 +14,43 @@ app = FastAPI(
         "Domain discovery, hosting comparison, and domain marketplace API. "
         "Catalog entries currently use illustrative demo data, not live offers."
     ),
-    version="0.1.0",
+    version="0.2.0",
 )
+
+_LABEL_RE = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$")
+
+
+def normalize_domain_query(value: str) -> str:
+    """Normalize a domain candidate and reject malformed hostnames.
+
+    Bare names default to .com for the demo UX. This is not an availability check.
+    """
+    candidate = value.strip().lower().rstrip(".")
+    if not candidate or len(candidate) > 253:
+        raise ValueError("Enter a valid domain name.")
+
+    if any(char.isspace() for char in candidate) or any(
+        char in candidate for char in "/\\:@?#"
+    ):
+        raise ValueError("Enter a domain name without spaces, paths, or URL components.")
+
+    if "." not in candidate:
+        candidate = f"{candidate}.com"
+
+    labels = candidate.split(".")
+    if len(labels) < 2 or any(not _LABEL_RE.fullmatch(label) for label in labels):
+        raise ValueError("Enter a valid domain name with valid label characters.")
+
+    tld = labels[-1]
+    if len(tld) < 2 and not tld.startswith("xn--"):
+        raise ValueError("The domain extension must contain at least two characters.")
+
+    return candidate
 
 
 class DomainSearchResult(BaseModel):
     domain: str
-    availability: str = Field(description="Demo result only; never a live availability claim.")
+    availability: str = Field(description="Unknown until a registrar has checked it.")
     source_status: str
     checked_at: str | None = None
     note: str
@@ -29,8 +60,8 @@ class HostingPlan(BaseModel):
     provider: str
     plan_name: str
     site_type: str
-    introductory_price: float
-    renewal_price: float | None
+    introductory_price: float = Field(ge=0)
+    renewal_price: float | None = Field(default=None, ge=0)
     currency: str = "EUR"
     billing_period: str = "month"
     storage: str
@@ -41,7 +72,7 @@ class HostingPlan(BaseModel):
 
 class MarketplaceListing(BaseModel):
     domain: str
-    asking_price: float
+    asking_price: float = Field(ge=0)
     currency: str = "EUR"
     sale_type: str
     listing_status: str = "demo"
@@ -72,16 +103,8 @@ DEMO_HOSTING_PLANS = [
 ]
 
 DEMO_LISTINGS = [
-    MarketplaceListing(
-        domain="examplebrand.com",
-        asking_price=2500.00,
-        sale_type="buy_now",
-    ),
-    MarketplaceListing(
-        domain="sampleproject.io",
-        asking_price=850.00,
-        sale_type="make_offer",
-    ),
+    MarketplaceListing(domain="examplebrand.com", asking_price=2500.00, sale_type="buy_now"),
+    MarketplaceListing(domain="sampleproject.io", asking_price=850.00, sale_type="make_offer"),
 ]
 
 
@@ -99,17 +122,14 @@ def ready() -> dict[str, str]:
 
 @app.get("/api/v1/domains/search", response_model=list[DomainSearchResult], tags=["domains"])
 def search_domains(
-    q: str = Query(min_length=3, max_length=253, description="Domain name or candidate name"),
+    q: str = Query(min_length=2, max_length=253, description="Domain name or candidate name"),
 ) -> list[DomainSearchResult]:
-    """Return a clearly labelled demo response until live registrar adapters exist."""
-    candidate = q.strip().lower().rstrip(".")
-    if not candidate or any(char.isspace() for char in candidate) or "/" in candidate:
-        raise HTTPException(status_code=422, detail="Enter a domain name without spaces or paths.")
+    """Return a demo result; it does not query a registrar."""
+    try:
+        candidate = normalize_domain_query(q)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
-    if "." not in candidate:
-        candidate = f"{candidate}.com"
-
-    # This endpoint intentionally does not pretend to verify availability.
     return [
         DomainSearchResult(
             domain=candidate,
@@ -129,18 +149,14 @@ def list_hosting_plans(
     """List illustrative plans; these are not real provider offers."""
     plans = DEMO_HOSTING_PLANS
     if site_type:
-        needle = site_type.casefold()
+        needle = site_type.casefold().strip()
         plans = [plan for plan in plans if needle in plan.site_type.casefold()]
     if max_price is not None:
         plans = [plan for plan in plans if plan.introductory_price <= max_price]
     return plans
 
 
-@app.get(
-    "/api/v1/marketplace/listings",
-    response_model=list[MarketplaceListing],
-    tags=["marketplace"],
-)
+@app.get("/api/v1/marketplace/listings", response_model=list[MarketplaceListing], tags=["marketplace"])
 def list_marketplace_listings(
     q: str | None = Query(default=None, max_length=253),
     max_price: float | None = Query(default=None, ge=0),
