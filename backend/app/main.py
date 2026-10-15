@@ -15,7 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
-from backend.app.database import MarketplaceListing as DBMarketplaceListing, get_db
+from backend.app.database import MarketplaceListing as DBMarketplaceListing, RegistrarOffer as DBRegistrarOffer, get_db
 from backend.app.providers import DemoRegistrarProvider
 
 app = FastAPI(
@@ -115,6 +115,19 @@ class PersistentMarketplaceListing(BaseModel):
     currency: str
     sale_type: str
     listing_status: str
+    data_status: str = "database"
+
+
+class RegistrarOfferResult(BaseModel):
+    id: int
+    domain: str
+    registrar_key: str
+    availability: str
+    registration_price: float = Field(ge=0)
+    renewal_price: float | None = Field(default=None, ge=0)
+    currency: str
+    checked_at: str | None = None
+    source_status: str = "verified"
     data_status: str = "database"
 
 
@@ -323,6 +336,58 @@ def list_persistent_marketplace_listings(
             currency=record.currency,
             sale_type=record.sale_type,
             listing_status=record.listing_status,
+        )
+        for record in records
+    ]
+
+
+@app.get(
+    "/api/v1/domains/offers",
+    response_model=list[RegistrarOfferResult],
+    tags=["domains"],
+)
+def list_verified_registrar_offers(
+    domain: str = Query(min_length=4, max_length=253),
+    db: Session = Depends(get_db),
+) -> list[RegistrarOfferResult]:
+    """Return only persisted registrar offers explicitly marked verified and priced.
+
+    This endpoint does not perform live availability checks. Callers must use
+    source_status and checked_at to assess the stored provider result's freshness.
+    """
+    try:
+        normalized_domain = normalize_domain_query(domain)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    statement = (
+        select(DBRegistrarOffer)
+        .where(
+            DBRegistrarOffer.domain == normalized_domain,
+            DBRegistrarOffer.source_status == "verified",
+            DBRegistrarOffer.registration_price.is_not(None),
+        )
+        .order_by(DBRegistrarOffer.registration_price.asc())
+    )
+    try:
+        records = db.scalars(statement).all()
+    except OperationalError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Registrar catalog database is not initialized. Apply database migrations first.",
+        ) from exc
+
+    return [
+        RegistrarOfferResult(
+            id=record.id,
+            domain=record.domain,
+            registrar_key=record.registrar_key,
+            availability=record.availability,
+            registration_price=record.registration_price,
+            renewal_price=record.renewal_price,
+            currency=record.currency,
+            checked_at=record.checked_at.isoformat() if record.checked_at else None,
+            source_status=record.source_status,
         )
         for record in records
     ]
