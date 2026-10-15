@@ -18,7 +18,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
-from backend.app.database import AffiliateClick as DBAffiliateClick, HostingPlanRecord as DBHostingPlan, MarketplaceListing as DBMarketplaceListing, RegistrarOffer as DBRegistrarOffer, get_db, utc_now
+from backend.app.database import AffiliateClick as DBAffiliateClick, HostingPlanRecord as DBHostingPlan, MarketplaceListing as DBMarketplaceListing, OwnershipChallenge as DBOwnershipChallenge, RegistrarOffer as DBRegistrarOffer, get_db, utc_now
 from backend.app.marketplace import add_listing_audit_event
 from backend.app.providers import DemoRegistrarProvider
 from backend.app.ownership_api import router as ownership_router
@@ -30,7 +30,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[origin.strip() for origin in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5500,http://127.0.0.1:5500").split(",") if origin.strip()],
     allow_credentials=False,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["Content-Type", "Authorization"],
 )
 
@@ -110,6 +110,12 @@ class SellerListingCreate(BaseModel):
 class AdminListingReview(BaseModel):
     decision: str = Field(min_length=1, max_length=20)
     note: str | None = Field(default=None, max_length=500)
+
+
+class SellerListingUpdate(BaseModel):
+    asking_price: float | None = Field(default=None, ge=0)
+    currency: str | None = Field(default=None, min_length=3, max_length=3)
+    sale_type: str | None = Field(default=None, min_length=1, max_length=30)
 
 
 class PersistentHostingPlan(BaseModel):
@@ -293,6 +299,109 @@ def list_seller_listings(seller_ref: str = Depends(_require_seller_auth), db: Se
         )
         for r in records
     ]
+
+
+@app.patch("/api/v1/marketplace/seller/listings/{listing_id}", response_model=PersistentMarketplaceListing, tags=["marketplace"])
+def update_seller_listing(
+    listing_id: int,
+    payload: SellerListingUpdate,
+    seller_ref: str = Depends(_require_seller_auth),
+    db: Session = Depends(get_db),
+) -> PersistentMarketplaceListing:
+    """Edit an owned listing; changes unpublish it and require a fresh moderation decision."""
+    changes = payload.model_dump(exclude_unset=True)
+    if not changes:
+        raise HTTPException(status_code=422, detail="Provide at least one field to update.")
+    if any(value is None for value in changes.values()):
+        raise HTTPException(status_code=422, detail="Updated fields cannot be null.")
+    if "currency" in changes:
+        changes["currency"] = changes["currency"].strip().upper()
+        if not re.fullmatch(r"[A-Z]{3}", changes["currency"]):
+            raise HTTPException(status_code=422, detail="Currency must be a three-letter ISO-style code.")
+    if "sale_type" in changes:
+        changes["sale_type"] = changes["sale_type"].strip().lower()
+        if changes["sale_type"] not in {"buy_now", "make_offer"}:
+            raise HTTPException(status_code=422, detail="Sale type must be buy_now or make_offer.")
+    try:
+        listing = db.scalar(select(DBMarketplaceListing).where(
+            DBMarketplaceListing.id == listing_id,
+            DBMarketplaceListing.seller_ref == seller_ref,
+        ))
+        if listing is None:
+            raise HTTPException(status_code=404, detail="Marketplace listing not found.")
+        if listing.listing_status == "withdrawn":
+            raise HTTPException(status_code=409, detail="Withdrawn listings cannot be edited.")
+        for field, value in changes.items():
+            setattr(listing, field, value)
+        listing.active = False
+        listing.listing_status = "pending_review"
+        listing.moderation_status = "pending"
+        add_listing_audit_event(
+            db, listing_id=listing.id, event_type="seller_listing_updated",
+            actor_type="seller", actor_ref=seller_ref,
+            event_note="Listing changes submitted for renewed moderation",
+        )
+        db.commit()
+        db.refresh(listing)
+    except OperationalError as exc:
+        db.rollback()
+        raise HTTPException(status_code=503, detail="Marketplace database is not initialized. Apply database migrations first.") from exc
+    return PersistentMarketplaceListing(
+        id=listing.id, domain=listing.domain, asking_price=listing.asking_price,
+        currency=listing.currency, sale_type=listing.sale_type,
+        listing_status=listing.listing_status, ownership_status=listing.ownership_status,
+        moderation_status=listing.moderation_status,
+        updated_at=listing.updated_at.isoformat() if listing.updated_at else None,
+    )
+
+
+@app.delete("/api/v1/marketplace/seller/listings/{listing_id}", response_model=PersistentMarketplaceListing, tags=["marketplace"])
+def withdraw_seller_listing(
+    listing_id: int,
+    seller_ref: str = Depends(_require_seller_auth),
+    db: Session = Depends(get_db),
+) -> PersistentMarketplaceListing:
+    """Withdraw an owned listing without deleting its audit history or transaction references."""
+    try:
+        listing = db.scalar(select(DBMarketplaceListing).where(
+            DBMarketplaceListing.id == listing_id,
+            DBMarketplaceListing.seller_ref == seller_ref,
+        ))
+        if listing is None:
+            raise HTTPException(status_code=404, detail="Marketplace listing not found.")
+        if listing.listing_status == "withdrawn":
+            return PersistentMarketplaceListing(
+                id=listing.id, domain=listing.domain, asking_price=listing.asking_price,
+                currency=listing.currency, sale_type=listing.sale_type,
+                listing_status=listing.listing_status, ownership_status=listing.ownership_status,
+                moderation_status=listing.moderation_status,
+                updated_at=listing.updated_at.isoformat() if listing.updated_at else None,
+            )
+        listing.active = False
+        listing.listing_status = "withdrawn"
+        listing.moderation_status = "withdrawn"
+        pending_challenges = db.scalars(select(DBOwnershipChallenge).where(
+            DBOwnershipChallenge.listing_id == listing.id,
+            DBOwnershipChallenge.status == "pending",
+        )).all()
+        for challenge in pending_challenges:
+            challenge.status = "superseded"
+        add_listing_audit_event(
+            db, listing_id=listing.id, event_type="seller_listing_withdrawn",
+            actor_type="seller", actor_ref=seller_ref,
+        )
+        db.commit()
+        db.refresh(listing)
+    except OperationalError as exc:
+        db.rollback()
+        raise HTTPException(status_code=503, detail="Marketplace database is not initialized. Apply database migrations first.") from exc
+    return PersistentMarketplaceListing(
+        id=listing.id, domain=listing.domain, asking_price=listing.asking_price,
+        currency=listing.currency, sale_type=listing.sale_type,
+        listing_status=listing.listing_status, ownership_status=listing.ownership_status,
+        moderation_status=listing.moderation_status,
+        updated_at=listing.updated_at.isoformat() if listing.updated_at else None,
+    )
 
 
 @app.post("/api/v1/admin/marketplace/listings/{listing_id}/review", response_model=PersistentMarketplaceListing, tags=["admin"])
