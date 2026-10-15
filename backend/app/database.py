@@ -103,6 +103,7 @@ class MarketplaceTransaction(Base):
     buyer_ref: Mapped[str] = mapped_column(String(64), index=True)
     seller_ref: Mapped[str] = mapped_column(String(64), index=True)
     transaction_type: Mapped[str] = mapped_column(String(20), default="make_offer", server_default="make_offer")
+    idempotency_key: Mapped[str | None] = mapped_column(String(128), nullable=True)
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     currency: Mapped[str] = mapped_column(String(3), default="EUR", server_default="EUR")
     status: Mapped[str] = mapped_column(String(30), default="offer_pending", server_default="offer_pending", index=True)
