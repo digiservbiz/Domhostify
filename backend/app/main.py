@@ -15,7 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
-from backend.app.database import MarketplaceListing as DBMarketplaceListing, RegistrarOffer as DBRegistrarOffer, get_db
+from backend.app.database import HostingPlanRecord as DBHostingPlan, MarketplaceListing as DBMarketplaceListing, RegistrarOffer as DBRegistrarOffer, get_db
 from backend.app.providers import DemoRegistrarProvider
 
 app = FastAPI(
@@ -115,6 +115,22 @@ class PersistentMarketplaceListing(BaseModel):
     currency: str
     sale_type: str
     listing_status: str
+    data_status: str = "database"
+
+
+class PersistentHostingPlan(BaseModel):
+    id: int
+    provider_key: str
+    plan_name: str
+    site_type: str
+    introductory_price: float = Field(ge=0)
+    renewal_price: float | None = Field(default=None, ge=0)
+    currency: str
+    billing_period: str
+    storage: str
+    support: str
+    checked_at: str | None = None
+    source_status: str = "verified"
     data_status: str = "database"
 
 
@@ -299,6 +315,53 @@ def list_marketplace_listings(
     if max_price is not None:
         listings = [item for item in listings if item.asking_price <= max_price]
     return listings
+
+
+@app.get(
+    "/api/v1/hosting/persistent-plans",
+    response_model=list[PersistentHostingPlan],
+    tags=["hosting"],
+)
+def list_persistent_hosting_plans(
+    site_type: str | None = Query(default=None, max_length=120),
+    max_price: float | None = Query(default=None, ge=0),
+    db: Session = Depends(get_db),
+) -> list[PersistentHostingPlan]:
+    """Return stored active, verified, priced hosting plans; no live provider calls occur."""
+    statement = select(DBHostingPlan).where(
+        DBHostingPlan.active.is_(True),
+        DBHostingPlan.source_status == "verified",
+        DBHostingPlan.introductory_price.is_not(None),
+    )
+    if site_type and site_type.strip():
+        statement = statement.where(DBHostingPlan.site_type.ilike(f"%{site_type.strip()}%"))
+    if max_price is not None:
+        statement = statement.where(DBHostingPlan.introductory_price <= max_price)
+    statement = statement.order_by(DBHostingPlan.introductory_price.asc()).limit(100)
+    try:
+        records = db.scalars(statement).all()
+    except OperationalError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Hosting catalog database is not initialized. Apply database migrations first.",
+        ) from exc
+    return [
+        PersistentHostingPlan(
+            id=record.id,
+            provider_key=record.provider_key,
+            plan_name=record.plan_name,
+            site_type=record.site_type,
+            introductory_price=record.introductory_price,
+            renewal_price=record.renewal_price,
+            currency=record.currency,
+            billing_period=record.billing_period,
+            storage=record.storage,
+            support=record.support,
+            checked_at=record.checked_at.isoformat() if record.checked_at else None,
+            source_status=record.source_status,
+        )
+        for record in records
+    ]
 
 
 @app.get(
