@@ -43,12 +43,13 @@ Use migrations for schema changes. Monetary values require decimal-safe storage 
 - GET /api/v1/domains/search?q=... — clearly labelled demo results
 - GET /api/v1/domains/offers?domain=... — persisted registrar pricing records marked verified; no live provider check until a provider is connected
 - GET /api/v1/domains/offers?domain=... — persisted verified registrar pricing records; does not perform a live check
-- GET /api/v1/hosting/plans — filterable hosting catalog
+- GET /api/v1/hosting/plans — filterable illustrative hosting catalog
+- GET /api/v1/hosting/persistent-plans — read-only database catalog of active, verified, priced hosting plans (no live provider calls)
 - GET /api/v1/marketplace/listings — demo aftermarket browse/search
 - GET /api/v1/marketplace/persistent-listings — read-only database-backed browse of explicitly active listings
 - GET /r/{provider_key} — safe configured affiliate redirect and click event
 
-The persistent listing and registrar offer endpoints require the initial database migration to be applied. It exposes only rows where `active=true` and `listing_status=active`; seller write flows and authorization are not implemented yet. Redirect destinations must come from trusted server configuration, never arbitrary user input.
+The persistent listing, registrar offer, and hosting-plan endpoints require the Alembic migrations to be applied. The listing endpoint exposes only rows where `active=true` and `listing_status=active`; the hosting endpoint exposes only rows where `active=true`, `source_status=verified`, and introductory price is present. Seller write flows and authorization are not implemented yet. Redirect destinations must come from trusted server configuration, never arbitrary user input.
 
 ## 7. External dependencies
 Registrar APIs/data feeds, hosting catalogs, affiliate programs, affiliate reporting, and later identity, payment/escrow, transfer, email, and analytics providers.
