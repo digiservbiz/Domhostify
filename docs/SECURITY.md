@@ -4,7 +4,8 @@
 - Store secrets in environment variables or a managed secret store; commit placeholders only.
 - Validate API inputs and cap input sizes.
 - Use timeouts and rate limits for search and redirect endpoints.
-- Allow outbound affiliate destinations only from server-managed provider configuration.
+- Affiliate redirects accept only allowlisted provider keys and server-configured HTTPS destinations; arbitrary destination URLs are not accepted.
+- Unset or invalid affiliate destinations fail closed; production partner URLs must be approved before configuration.
 - Never fetch arbitrary user-supplied URLs from the server.
 - Avoid logging credentials, tokens, or unnecessary personal/query data.
 - Use opaque affiliate click IDs and restrict reporting access.
