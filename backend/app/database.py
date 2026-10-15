@@ -56,6 +56,8 @@ class MarketplaceListing(Base):
     ownership_status: Mapped[str] = mapped_column(String(30), default="unverified", server_default="unverified", index=True)
     moderation_status: Mapped[str] = mapped_column(String(30), default="pending", server_default="pending", index=True)
     seller_ref: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    reservation_transaction_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    reserved_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, server_default=func.now())
     active: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
