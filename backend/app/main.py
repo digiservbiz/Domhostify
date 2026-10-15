@@ -158,6 +158,50 @@ def search_domains(
     ]
 
 
+@app.get("/api/v1/domains/suggestions", response_model=list[DomainSearchResult], tags=["domains"])
+def suggest_domain_extensions(
+    q: str = Query(min_length=1, max_length=63, description="Single-label brand candidate"),
+    extensions: str = Query(default="com,net,org,io", max_length=100),
+) -> list[DomainSearchResult]:
+    """Return clearly labelled demo checks for a bounded list of extensions."""
+    base = q.strip().lower()
+    if not _LABEL_RE.fullmatch(base):
+        raise HTTPException(
+            status_code=422,
+            detail="Enter a single domain label without an extension or URL components.",
+        )
+
+    requested = [item.strip().lower().lstrip(".") for item in extensions.split(",")]
+    if not requested or len(requested) > 10 or any(
+        not item or not _LABEL_RE.fullmatch(item) for item in requested
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail="Choose between 1 and 10 valid domain extensions.",
+        )
+
+    # Preserve order while removing duplicate extensions.
+    candidates = list(dict.fromkeys(requested))
+    results: list[DomainSearchResult] = []
+    for extension in candidates:
+        try:
+            domain = normalize_domain_query(f"{base}.{extension}")
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        result = _DEMO_REGISTRAR.check_domain(domain)
+        results.append(
+            DomainSearchResult(
+                domain=result.domain,
+                availability=result.availability,
+                source_status=result.source_status,
+                provider_key=result.provider_key,
+                checked_at=result.checked_at,
+                note=result.note,
+            )
+        )
+    return results
+
+
 @app.get("/api/v1/hosting/plans", response_model=list[HostingPlan], tags=["hosting"])
 def list_hosting_plans(
     site_type: str | None = Query(default=None, max_length=80),
