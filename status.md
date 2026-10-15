@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-10-15  
 **Current phase:** Phase 2 — Domain and hosting comparison prototype  
-**Overall progress:** 49% (database-backed marketplace and verified-priced registrar catalog read endpoints committed with isolated SQLite tests; runtime tests/CI still require verification)
+**Overall progress:** 50% (persistent marketplace and verified-priced registrar catalog reads are bounded to 100 records, with isolated SQLite tests committed; runtime tests/CI still require verification)
 
 ## Executive status
 The repository contains product/engineering documentation, a FastAPI demo API, domain validation tests, a responsive frontend, a registrar adapter contract, an allowlisted affiliate redirect foundation, and initial SQLAlchemy catalog models. Tests and CI have not yet been verified. The persistent marketplace read endpoint queries SQLAlchemy records marked active, and the registrar catalog endpoint returns only stored records marked verified with a registration price. Listing creation/authentication, live provider checks, and production deployment remain unimplemented.
@@ -19,7 +19,7 @@ The repository contains product/engineering documentation, a FastAPI demo API, d
 | Database and migrations | In progress | 55% | SQLAlchemy models, Alembic migration, managed session dependency, active-listing reads, and verified-priced registrar offer reads committed; migration execution and runtime verification remain |
 | Frontend | In progress | 35% | Responsive prototype now calls extension suggestions for bare names and domain search for full domains; not smoke-tested |
 | Provider/affiliate integrations | In progress | 20% | Registrar adapter and allowlisted HTTPS affiliate redirect foundation; no live provider integration or affiliate approval verified |
-| Automated tests and CI | In progress | 45% | Added isolated SQLite tests for active-only listings and verified-priced registrar offers, validation, filters, and safe 503 on missing schema; execution result not verified |
+| Automated tests and CI | In progress | 45% | Added isolated SQLite tests for active-only listings and verified-priced registrar offers, validation, filters, safe 503 on missing schema, and 100-row response caps; execution result not verified |
 | Deployment and monitoring | Not started | 0% | No deployment verified |
 
 ## Verified repository deliverables
@@ -35,10 +35,11 @@ The repository contains product/engineering documentation, a FastAPI demo API, d
 - [x] README documents database initialization and deployment configuration
 - [x] Database model safety tests committed, including database-side defaults and nullable provider pricing
 - [x] Read-only persistent marketplace listing endpoint filters to active, published records
-- [x] Read-only registrar offer endpoint filters to verified, priced records and sorts by registration price
+- [x] Read-only registrar offer endpoint filters to verified, priced records, sorts by registration price, and caps responses at 100 records
+- [x] Persistent marketplace listing responses are capped at 100 records
 - [x] Read-only registrar offer endpoint filters to verified, priced records and sorts by registration price
 - [x] Isolated SQLite API tests cover active-only database listing reads, price filtering, and safe failure when schema is missing
-- [x] Isolated SQLite API tests cover registrar offer verification filters, price ordering, malformed domain rejection, and missing-schema handling
+- [x] Isolated SQLite API tests cover registrar offer verification filters, price ordering, malformed domain rejection, missing-schema handling, and catalog response-size caps
 - [x] Isolated SQLite API tests cover registrar offer verification filters, price ordering, malformed domain rejection, and missing-schema handling
 - [x] Registrar provider contract and safe demo adapter committed
 - [x] Provider adapter safety tests committed
