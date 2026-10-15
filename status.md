@@ -2,10 +2,10 @@
 
 **Last updated:** 2026-10-15  
 **Current phase:** Phase 2 — Domain and hosting comparison prototype  
-**Overall progress:** 47% (read-only database-backed marketplace browsing is implemented with active-only filtering and isolated-database tests; runtime tests/CI still require verification)
+**Overall progress:** 49% (database-backed marketplace and verified-priced registrar catalog read endpoints committed with isolated SQLite tests; runtime tests/CI still require verification)
 
 ## Executive status
-The repository contains product/engineering documentation, a FastAPI demo API, domain validation tests, a responsive frontend, a registrar adapter contract, an allowlisted affiliate redirect foundation, and initial SQLAlchemy catalog models. Tests and CI have not yet been verified. The persistent marketplace read endpoint now queries SQLAlchemy records marked active; listing creation/authentication and live provider data remain unimplemented, and there is no production deployment.
+The repository contains product/engineering documentation, a FastAPI demo API, domain validation tests, a responsive frontend, a registrar adapter contract, an allowlisted affiliate redirect foundation, and initial SQLAlchemy catalog models. Tests and CI have not yet been verified. The persistent marketplace read endpoint queries SQLAlchemy records marked active, and the registrar catalog endpoint returns only stored records marked verified with a registration price. Listing creation/authentication, live provider checks, and production deployment remain unimplemented.
 
 ## Workstream tracker
 | Workstream | Status | Progress | Notes |
@@ -15,11 +15,11 @@ The repository contains product/engineering documentation, a FastAPI demo API, d
 | Architecture and data boundaries | In progress | 65% | API/frontend boundary, demo-data trust rules, and registrar adapter contract documented |
 | Roadmap and project governance | In progress | 85% | Core project docs and status tracker maintained |
 | Security, privacy, compliance | In progress | 45% | Input validation, configurable CORS origins, allowlisted provider keys, HTTPS-only affiliate destinations; rate limiting and broader controls remain |
-| API implementation | In progress | 60% | Health, domain search/suggestions, demo listings, read-only active database listings, hosting plans, and allowlisted affiliate redirects; not runtime-verified |
-| Database and migrations | In progress | 50% | SQLAlchemy models, Alembic migration, managed session dependency, and active-listing read endpoint committed; migration execution and runtime verification remain |
+| API implementation | In progress | 65% | Health, domain search/suggestions, verified-priced registrar catalog reads, demo and persistent marketplace reads, hosting plans, and allowlisted affiliate redirects; not runtime-verified |
+| Database and migrations | In progress | 55% | SQLAlchemy models, Alembic migration, managed session dependency, active-listing reads, and verified-priced registrar offer reads committed; migration execution and runtime verification remain |
 | Frontend | In progress | 35% | Responsive prototype now calls extension suggestions for bare names and domain search for full domains; not smoke-tested |
 | Provider/affiliate integrations | In progress | 20% | Registrar adapter and allowlisted HTTPS affiliate redirect foundation; no live provider integration or affiliate approval verified |
-| Automated tests and CI | In progress | 40% | Added isolated SQLite tests for active-only persistent listing reads, price filtering, and safe 503 when schema is missing; execution result not verified |
+| Automated tests and CI | In progress | 45% | Added isolated SQLite tests for active-only listings and verified-priced registrar offers, validation, filters, and safe 503 on missing schema; execution result not verified |
 | Deployment and monitoring | Not started | 0% | No deployment verified |
 
 ## Verified repository deliverables
@@ -35,7 +35,9 @@ The repository contains product/engineering documentation, a FastAPI demo API, d
 - [x] README documents database initialization and deployment configuration
 - [x] Database model safety tests committed, including database-side defaults and nullable provider pricing
 - [x] Read-only persistent marketplace listing endpoint filters to active, published records
+- [x] Read-only registrar offer endpoint filters to verified, priced records and sorts by registration price
 - [x] Isolated SQLite API tests cover active-only database listing reads, price filtering, and safe failure when schema is missing
+- [x] Isolated SQLite API tests cover registrar offer verification filters, price ordering, malformed domain rejection, and missing-schema handling
 - [x] Registrar provider contract and safe demo adapter committed
 - [x] Provider adapter safety tests committed
 - [x] Provider integration requirements documented
@@ -71,7 +73,7 @@ The repository contains product/engineering documentation, a FastAPI demo API, d
 - Domain search does not contact registrars; availability remains unknown.
 - Hosting plans and aftermarket listings are fictional illustrative records.
 - Affiliate redirect endpoint supports only configured allowlisted providers and HTTPS destinations; click tracking persistence is not wired.
-- The persistent marketplace endpoint reads active listings from the database, but no seller listing creation/editing or authentication exists yet. Accounts, seller dashboard, payments, transfers, and auctions are not implemented.
+- The persistent marketplace endpoint reads active listings from the database, and the registrar catalog endpoint reads stored verified-priced offers. Neither endpoint contacts external providers; no seller listing creation/editing or authentication exists yet. Accounts, seller dashboard, payments, transfers, and auctions are not implemented.
 - Browser prototype assumes the API is running at http://127.0.0.1:8000.
 - CI workflow is committed but must run before its status can be claimed as passing.
 - CORS is configured for local development only; production origins must be configured deliberately.
