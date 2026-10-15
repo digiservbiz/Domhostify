@@ -16,13 +16,13 @@ Progress and blockers live in [status.md](../status.md). Dates are not committed
 - [ ] Verify build/tests.
 
 ## Phase 2 — Domain and hosting comparison demo
-- [ ] Domain normalization and input validation.
-- [ ] Typed availability/result contract with explicit unknown state.
-- [ ] Registrar offer model with registration and renewal pricing.
-- [ ] Hosting provider and plan catalog.
-- [ ] Clearly labelled demo data.
-- [ ] Search/filter/sort endpoints and tests.
-- [ ] First responsive web interface.
+- [x] Domain normalization and input validation.
+- [x] Typed availability/result contract with explicit unknown state.
+- [x] Registrar offer model with registration and renewal pricing.
+- [x] Hosting provider and plan catalog (demo catalog plus persistent verified-plan read endpoint).
+- [x] Clearly labelled demo data.
+- [x] Search/filter/sort endpoints and committed tests (execution still needs verification).
+- [x] First responsive web interface (runtime smoke test still pending).
 
 ## Phase 3 — Affiliate-ready integrations
 - [ ] Inventory provider APIs and affiliate programs.
