@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-10-15  
 **Current phase:** Phase 2 — Domain and hosting comparison prototype  
-**Overall progress:** 32% (registrar adapter contract and safety tests committed; runtime tests/CI still require verification)
+**Overall progress:** 32% (registrar adapter contract, extension suggestions, and API tests committed; runtime tests/CI still require verification)
 
 ## Executive status
 The repository now contains the product/engineering documentation, a FastAPI demo API, domain validation tests, local CORS configuration, a responsive HTML/JavaScript prototype, and a registrar provider contract with a safe demo adapter. Provider behavior and adapter safety tests are committed, but runtime tests/CI are not yet verified. No live provider data, database, affiliate tracking, accounts, or production deployment is configured.
@@ -27,7 +27,8 @@ The repository now contains the product/engineering documentation, a FastAPI dem
 - [x] PRD, architecture, roadmap, decision log, status, testing, security, and contribution docs
 - [x] Python dependency list, environment example, and ignore rules
 - [x] FastAPI health and readiness endpoints
-- [x] Domain search returns explicit unknown availability and demo source status\n- [x] Registrar provider contract and safe demo adapter committed\n- [x] Provider adapter safety tests committed\n- [x] Provider integration requirements documented
+- [x] Domain search returns explicit unknown availability and demo source status
+- [x] Domain extension suggestions endpoint and tests committed\n- [x] Registrar provider contract and safe demo adapter committed\n- [x] Provider adapter safety tests committed\n- [x] Provider integration requirements documented
 - [x] Domain query normalization/validation helper and malformed-input tests committed
 - [x] Hosting-plan catalog endpoint and filters
 - [x] Marketplace listing endpoint and filters
