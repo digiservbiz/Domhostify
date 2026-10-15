@@ -5,6 +5,7 @@ configured, so domain availability must remain unknown.
 """
 import os
 import re
+import uuid
 from urllib.parse import urlparse
 
 from fastapi import Depends, FastAPI, HTTPException, Query
@@ -15,7 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
-from backend.app.database import HostingPlanRecord as DBHostingPlan, MarketplaceListing as DBMarketplaceListing, RegistrarOffer as DBRegistrarOffer, get_db
+from backend.app.database import AffiliateClick as DBAffiliateClick, HostingPlanRecord as DBHostingPlan, MarketplaceListing as DBMarketplaceListing, RegistrarOffer as DBRegistrarOffer, get_db
 from backend.app.providers import DemoRegistrarProvider
 
 app = FastAPI(
@@ -233,7 +234,6 @@ def suggest_domain_extensions(
             detail="Choose between 1 and 10 valid domain extensions.",
         )
 
-    # Preserve order while removing duplicate extensions.
     candidates = list(dict.fromkeys(requested))
     results: list[DomainSearchResult] = []
     for extension in candidates:
@@ -276,14 +276,25 @@ def _approved_affiliate_destination(provider_key: str) -> str | None:
 
 
 @app.get("/api/v1/affiliate/{provider_key}", tags=["affiliate"])
-def affiliate_redirect(provider_key: str) -> RedirectResponse:
-    """Redirect only to a server-configured, allowlisted HTTPS partner URL."""
-    destination = _approved_affiliate_destination(provider_key.strip().lower())
+def affiliate_redirect(provider_key: str, db: Session = Depends(get_db)) -> RedirectResponse:
+    """Record an opaque click event, then redirect to the configured HTTPS partner."""
+    normalized_key = provider_key.strip().lower()
+    destination = _approved_affiliate_destination(normalized_key)
     if destination is None:
         raise HTTPException(
             status_code=503,
             detail="Affiliate destination is not configured or is invalid.",
         )
+    click = DBAffiliateClick(click_id=str(uuid.uuid4()), provider_key=normalized_key)
+    try:
+        db.add(click)
+        db.commit()
+    except OperationalError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=503,
+            detail="Affiliate tracking database is not initialized. Apply database migrations first.",
+        ) from exc
     return RedirectResponse(url=destination, status_code=302)
 
 
@@ -436,11 +447,7 @@ def list_verified_registrar_offers(
     try:
         records = db.scalars(statement).all()
     except OperationalError as exc:
-        raise HTTPException(
-            status_code=503,
-            detail="Registrar catalog database is not initialized. Apply database migrations first.",
-        ) from exc
-
+        raise HTTPException(status_code=503, detail="Registrar catalog database is not initialized. Apply database migrations first.") from exc
     return [
         RegistrarOfferResult(
             id=record.id,
