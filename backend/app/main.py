@@ -8,7 +8,11 @@ import hmac
 import os
 import re
 import uuid
+from datetime import timezone
 from urllib.parse import urlparse
+
+import dns.exception
+import dns.resolver
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,8 +22,9 @@ from sqlalchemy import select
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
-from backend.app.database import AffiliateClick as DBAffiliateClick, HostingPlanRecord as DBHostingPlan, MarketplaceListing as DBMarketplaceListing, RegistrarOffer as DBRegistrarOffer, get_db
-from backend.app.marketplace import add_listing_audit_event
+from backend.app.database import AffiliateClick as DBAffiliateClick, HostingPlanRecord as DBHostingPlan, MarketplaceListing as DBMarketplaceListing, OwnershipChallenge as DBOwnershipChallenge, RegistrarOffer as DBRegistrarOffer, get_db, utc_now
+from backend.app.marketplace import add_listing_audit_event, create_ownership_challenge
+from backend.app.ownership import verify_listing_ownership
 from backend.app.providers import DemoRegistrarProvider
 
 app = FastAPI(title="DomHostify API", description="Domain discovery, hosting comparison, and domain marketplace API. Catalog entries currently use illustrative demo data, not live offers.", version="0.3.0")
