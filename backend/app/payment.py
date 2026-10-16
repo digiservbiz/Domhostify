@@ -40,7 +40,7 @@ class PaymentProvider(Protocol):
 
 def validate_payment_request(request: PaymentIntentRequest) -> PaymentIntentRequest:
     """Validate server-derived transaction values before calling a payment provider."""
-    if request.transaction_id < 1:
+    if isinstance(request.transaction_id, bool) or not isinstance(request.transaction_id, int) or request.transaction_id < 1:
         raise PaymentValidationError("Transaction ID must be a positive integer.")
     try:
         amount = Decimal(str(request.amount))
@@ -50,15 +50,23 @@ def validate_payment_request(request: PaymentIntentRequest) -> PaymentIntentRequ
         raise PaymentValidationError("Amount must be greater than zero.")
     if amount.as_tuple().exponent < -2:
         raise PaymentValidationError("Amount must have at most two decimal places.")
+    # Match the marketplace's Numeric(12, 2) money columns and avoid overflow
+    # when normalizing extremely large Decimal values.
+    if amount.adjusted() > 9:
+        raise PaymentValidationError("Amount exceeds the supported transaction limit.")
     currency = request.currency.strip().upper()
     if not re.fullmatch(r"[A-Z]{3}", currency):
         raise PaymentValidationError("Currency must be a three-letter ISO-style code.")
     key = request.idempotency_key.strip()
     if not key or len(key) > 128:
         raise PaymentValidationError("Idempotency key must contain 1–128 characters.")
+    try:
+        normalized_amount = amount.quantize(Decimal("0.01"))
+    except InvalidOperation as exc:
+        raise PaymentValidationError("Amount cannot be represented as a supported transaction value.") from exc
     return PaymentIntentRequest(
         transaction_id=request.transaction_id,
-        amount=amount.quantize(Decimal("0.01")),
+        amount=normalized_amount,
         currency=currency,
         idempotency_key=key,
     )
