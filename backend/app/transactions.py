@@ -39,6 +39,13 @@ def transition_transaction(
         raise ValueError(f"Invalid transaction transition: {current} -> {target}")
     if actor_type not in {"buyer", "seller", "admin", "system", "payment_provider", "transfer_provider"}:
         raise ValueError("Unsupported transaction event actor type.")
+    # Payment-related state must never be advanced by a browser-facing buyer or seller action.
+    if target == "payment_pending" and actor_type not in {"system", "payment_provider"}:
+        raise ValueError("Payment initiation requires a trusted system or payment provider actor.")
+    if target == "paid" and actor_type != "payment_provider":
+        raise ValueError("Only a verified payment provider event may mark a transaction paid.")
+    if target == "refunded" and actor_type not in {"admin", "payment_provider"}:
+        raise ValueError("Refund transitions require an admin or payment provider actor.")
     if note is not None and len(note) > 500:
         raise ValueError("Transaction event note must be at most 500 characters.")
 
