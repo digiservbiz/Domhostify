@@ -1,0 +1,91 @@
+"""Provider-neutral payment boundary. No provider means no checkout and never success."""
+from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation
+import hashlib
+import hmac
+import re
+from typing import Protocol
+
+
+class PaymentNotConfigured(RuntimeError):
+    """Raised when no real payment provider is configured."""
+
+
+class PaymentValidationError(ValueError):
+    """Raised when a payment request contains an invalid amount or currency."""
+
+
+@dataclass(frozen=True)
+class PaymentIntentRequest:
+    transaction_id: int
+    amount: Decimal
+    currency: str
+    idempotency_key: str
+
+
+@dataclass(frozen=True)
+class PaymentIntentResult:
+    provider: str
+    provider_intent_id: str
+    checkout_url: str
+    status: str
+
+
+class PaymentProvider(Protocol):
+    @property
+    def ready(self) -> bool: ...
+
+    def create_intent(self, request: PaymentIntentRequest) -> PaymentIntentResult: ...
+
+
+def validate_payment_request(request: PaymentIntentRequest) -> PaymentIntentRequest:
+    """Validate server-derived transaction values before calling a payment provider."""
+    if request.transaction_id < 1:
+        raise PaymentValidationError("Transaction ID must be a positive integer.")
+    try:
+        amount = Decimal(str(request.amount))
+    except (InvalidOperation, ValueError, TypeError) as exc:
+        raise PaymentValidationError("Amount must be a valid decimal value.") from exc
+    if not amount.is_finite() or amount <= 0:
+        raise PaymentValidationError("Amount must be greater than zero.")
+    if amount.as_tuple().exponent < -2:
+        raise PaymentValidationError("Amount must have at most two decimal places.")
+    currency = request.currency.strip().upper()
+    if not re.fullmatch(r"[A-Z]{3}", currency):
+        raise PaymentValidationError("Currency must be a three-letter ISO-style code.")
+    key = request.idempotency_key.strip()
+    if not key or len(key) > 128:
+        raise PaymentValidationError("Idempotency key must contain 1–128 characters.")
+    return PaymentIntentRequest(
+        transaction_id=request.transaction_id,
+        amount=amount.quantize(Decimal("0.01")),
+        currency=currency,
+        idempotency_key=key,
+    )
+
+
+class DisabledPaymentProvider:
+    """Safe default: explicitly unavailable and incapable of reporting success."""
+
+    name = "disabled"
+
+    @property
+    def ready(self) -> bool:
+        return False
+
+    def create_intent(self, request: PaymentIntentRequest) -> PaymentIntentResult:
+        validate_payment_request(request)
+        raise PaymentNotConfigured(
+            "Payment processing is disabled. Configure and verify a real provider before checkout."
+        )
+
+
+def verify_webhook_signature(raw_body: bytes, supplied_signature: str, secret: str) -> bool:
+    """Verify a hex HMAC-SHA256 signature over the exact raw webhook body."""
+    if not secret or not supplied_signature:
+        return False
+    expected = hmac.new(secret.encode("utf-8"), raw_body, hashlib.sha256).hexdigest()
+    candidate = supplied_signature.strip()
+    if candidate.startswith("sha256="):
+        candidate = candidate[7:]
+    return hmac.compare_digest(expected, candidate.lower())
