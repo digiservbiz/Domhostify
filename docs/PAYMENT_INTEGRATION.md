@@ -2,7 +2,7 @@
 
 Status: foundation only; live payment processing is disabled.
 
-The module `backend/app/payment.py` defines provider-neutral request/result types, validates positive fixed-precision amounts, normalizes three-letter currency codes, validates idempotency keys, and exposes a `PaymentProvider` protocol. `DisabledPaymentProvider` is the default safe behavior: it reports `ready = False` and raises `PaymentNotConfigured` instead of creating a successful intent.
+The module `backend/app/payment.py` defines provider-neutral request/result types, validates positive fixed-precision amounts within the marketplace money-column limit, requires a real positive integer transaction ID, normalizes three-letter currency codes, validates idempotency keys, and exposes a `PaymentProvider` protocol. `DisabledPaymentProvider` is the default safe behavior: it reports `ready = False` and raises `PaymentNotConfigured` instead of creating a successful intent.
 
 The module also contains an HMAC-SHA256 helper for validating a signature against the exact raw webhook body. This is a generic primitive, not a provider integration. Each selected provider's documented signature format, timestamp/replay policy, event identifiers, and event schema still need provider-specific implementation.
 
