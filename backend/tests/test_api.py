@@ -161,3 +161,59 @@ def test_marketplace_public_reads_require_ownership_and_moderation_approval() ->
         app.dependency_overrides.pop(get_db, None)
         Base.metadata.drop_all(bind=engine)
         engine.dispose()
+
+
+def test_persistent_hosting_catalog_returns_only_active_verified_priced_rows() -> None:
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    Base.metadata.create_all(bind=engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    with TestSession() as session:
+        session.add_all([
+            DBHostingPlan(provider_key="verifiedhost", plan_name="Starter", site_type="Business", introductory_price=4.99, renewal_price=8.99, currency="EUR", billing_period="month", storage="20 GB", support="Email", source_status="verified", active=True),
+            DBHostingPlan(provider_key="unverifiedhost", plan_name="Unverified", site_type="Business", introductory_price=2.99, currency="EUR", billing_period="month", storage="10 GB", support="Email", source_status="unverified", active=True),
+            DBHostingPlan(provider_key="inactivehost", plan_name="Inactive", site_type="Business", introductory_price=1.99, currency="EUR", billing_period="month", storage="5 GB", support="Email", source_status="verified", active=False),
+            DBHostingPlan(provider_key="nodatahost", plan_name="No Price", site_type="Business", introductory_price=None, currency="EUR", billing_period="month", storage="5 GB", support="Email", source_status="verified", active=True),
+        ])
+        session.commit()
+    def override_get_db():
+        with TestSession() as session:
+            yield session
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        response = client.get("/api/v1/hosting/persistent-plans", params={"max_price": 5})
+        assert response.status_code == 200
+        assert [row["provider_key"] for row in response.json()] == ["verifiedhost"]
+        assert response.json()[0]["source_status"] == "verified"
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+        Base.metadata.drop_all(bind=engine)
+        engine.dispose()
+
+
+def test_registrar_offers_return_only_verified_priced_offers_sorted_by_price() -> None:
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    Base.metadata.create_all(bind=engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    with TestSession() as session:
+        session.add_all([
+            DBRegistrarOffer(domain="brand.com", registrar_key="cheap", availability="unknown", registration_price=8.99, renewal_price=12.99, currency="EUR", source_status="verified"),
+            DBRegistrarOffer(domain="brand.com", registrar_key="premium", availability="unknown", registration_price=14.99, renewal_price=16.99, currency="EUR", source_status="verified"),
+            DBRegistrarOffer(domain="brand.com", registrar_key="unverified", availability="unknown", registration_price=1.99, renewal_price=3.99, currency="EUR", source_status="unverified"),
+            DBRegistrarOffer(domain="other.com", registrar_key="other", availability="unknown", registration_price=2.99, renewal_price=4.99, currency="EUR", source_status="verified"),
+        ])
+        session.commit()
+    def override_get_db():
+        with TestSession() as session:
+            yield session
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        response = client.get("/api/v1/domains/offers", params={"domain": "BRAND.COM."})
+        assert response.status_code == 200
+        rows = response.json()
+        assert [row["registrar_key"] for row in rows] == ["cheap", "premium"]
+        assert [row["registration_price"] for row in rows] == [8.99, 14.99]
+        assert all(row["source_status"] == "verified" for row in rows)
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+        Base.metadata.drop_all(bind=engine)
+        engine.dispose()
