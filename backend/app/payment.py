@@ -88,4 +88,8 @@ def verify_webhook_signature(raw_body: bytes, supplied_signature: str, secret: s
     candidate = supplied_signature.strip()
     if candidate.startswith("sha256="):
         candidate = candidate[7:]
-    return hmac.compare_digest(expected, candidate.lower())
+    candidate = candidate.lower()
+    # Reject malformed/non-ASCII input before compare_digest so invalid signatures fail closed.
+    if not re.fullmatch(r"[0-9a-f]{64}", candidate):
+        return False
+    return hmac.compare_digest(expected, candidate)
