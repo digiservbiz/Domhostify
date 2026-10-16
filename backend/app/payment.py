@@ -94,6 +94,8 @@ class DisabledPaymentProvider:
 
 def verify_webhook_signature(raw_body: bytes, supplied_signature: str, secret: str) -> bool:
     """Verify a hex HMAC-SHA256 signature over the exact raw webhook body."""
+    if not isinstance(raw_body, bytes) or not isinstance(supplied_signature, str) or not isinstance(secret, str):
+        return False
     if not secret or not supplied_signature:
         return False
     expected = hmac.new(secret.encode("utf-8"), raw_body, hashlib.sha256).hexdigest()
