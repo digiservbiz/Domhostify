@@ -71,5 +71,7 @@ def test_webhook_signature_rejects_wrong_body_signature_or_missing_secret():
     signature = hmac.new(b"secret", body, hashlib.sha256).hexdigest()
     assert not verify_webhook_signature(body + b" ", signature, "secret")
     assert not verify_webhook_signature(body, "not-a-signature", "secret")
+    assert not verify_webhook_signature(body, "é" * 64, "secret")
+    assert not verify_webhook_signature(body, "a" * 63, "secret")
     assert not verify_webhook_signature(body, signature, "")
     assert not verify_webhook_signature(body, "", "secret")
