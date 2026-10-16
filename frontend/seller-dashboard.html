@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="DomHostify seller dashboard foundation.">
+  <title>DomHostify — Seller Dashboard</title>
+  <style>
+    :root{color-scheme:dark;--bg:#0b1020;--panel:#121a2e;--line:#27334d;--muted:#9eabc4;--text:#f5f7ff;--accent:#91f2cf;--danger:#ff9c9c}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 Inter,ui-sans-serif,system-ui,sans-serif}.wrap{max-width:1120px;margin:auto;padding:0 24px}.top{display:flex;justify-content:space-between;align-items:center;padding:24px 0;border-bottom:1px solid #ffffff16}.brand{font-weight:800;font-size:1.2rem}.brand span{color:var(--accent)}a{color:var(--accent);text-decoration:none}.badge{border:1px solid #38516c;background:#15253a;color:var(--accent);border-radius:99px;padding:5px 10px;font-size:.78rem;font-weight:700}.hero{padding:52px 0 28px}.hero h1{font-size:clamp(2rem,5vw,3.4rem);letter-spacing:-.06em;margin:12px 0}.muted{color:var(--muted)}.notice{border:1px solid #5b4931;background:#211b12;border-radius:14px;padding:18px;margin:20px 0}.notice strong{display:block;margin-bottom:5px}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:24px 0}.card{background:linear-gradient(150deg,#151f35,#101729);border:1px solid var(--line);border-radius:18px;padding:22px}.card h2,.card h3{margin-top:0}.metric{font-size:2rem;font-weight:800}.actions{display:flex;gap:10px;flex-wrap:wrap}.btn{display:inline-block;border:1px solid var(--line);border-radius:10px;padding:10px 14px;color:var(--text);background:#151f35;cursor:pointer}.btn.primary{background:var(--accent);color:#0b1720;border-color:var(--accent);font-weight:800}button:disabled{opacity:.55;cursor:not-allowed}.table{width:100%;border-collapse:collapse}.table th,.table td{text-align:left;padding:12px 8px;border-bottom:1px solid var(--line)}footer{border-top:1px solid #ffffff16;padding:24px 0;color:var(--muted);font-size:.82rem}@media(max-width:720px){.grid{grid-template-columns:1fr}.top{align-items:flex-start;gap:12px}}
+  </style>
+</head>
+<body>
+<header class="wrap top">
+  <div class="brand">dom<span>hostify</span></div>
+  <a href="index.html">← Public marketplace</a>
+</header>
+<main class="wrap">
+  <section class="hero">
+    <span class="badge">SELLER AREA · FOUNDATION</span>
+    <h1>Your domain inventory, in one place.</h1>
+    <p class="muted">This dashboard is intentionally session-oriented. It will not accept or store bootstrap API tokens in browser storage, HTML, JavaScript, or query parameters.</p>
+  </section>
+  <section class="notice" role="status">
+    <strong>Seller sign-in is not enabled yet.</strong>
+    <span class="muted">Real per-user account/session authentication is still required before seller data can be loaded. No private credentials are requested by this page.</span>
+  </section>
+  <section class="grid" aria-label="Seller dashboard preview">
+    <article class="card"><h2>0</h2><p class="muted">Active listings</p></article>
+    <article class="card"><h2>0</h2><p class="muted">Offers awaiting response</p></article>
+    <article class="card"><h2>0</h2><p class="muted">Reserved Buy Now transactions</p></article>
+  </section>
+  <section class="card">
+    <h2>Seller workflow</h2>
+    <p class="muted">The UI is prepared for the future session boundary. Listing operations remain server-protected until real account authentication is deployed.</p>
+    <div class="actions">
+      <button class="btn primary" type="button" disabled>Sign in</button>
+      <button class="btn" type="button" disabled>New listing</button>
+      <button class="btn" type="button" disabled>Manage offers</button>
+    </div>
+  </section>
+  <section class="card" style="margin-top:16px">
+    <h2>Security boundary</h2>
+    <table class="table"><tbody>
+      <tr><th>Browser credentials</th><td>None stored or embedded</td></tr>
+      <tr><th>Seller API token</th><td>Not accepted by this page</td></tr>
+      <tr><th>Account/session auth</th><td>Pending implementation</td></tr>
+      <tr><th>Listing mutations</th><td>Remain backend-protected</td></tr>
+    </tbody></table>
+  </section>
+</main>
+<footer><div class="wrap">DomHostify seller dashboard foundation · Do not expose server credentials in client-side code.</div></footer>
+</body>
+</html>
