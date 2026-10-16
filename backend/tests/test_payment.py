@@ -32,11 +32,18 @@ def test_payment_request_normalizes_currency_and_amount():
     assert result.idempotency_key == "checkout-42"
 
 
+def test_payment_request_accepts_maximum_supported_money_column_value():
+    result = validate_payment_request(_request(amount=Decimal("9999999999.99")))
+    assert result.amount == Decimal("9999999999.99")
+
+
 @pytest.mark.parametrize(
     "overrides",
     [
         {"transaction_id": 0},
         {"transaction_id": True},
+        {"transaction_id": "42"},
+        {"transaction_id": 42.0},
         {"amount": Decimal("10000000000.00")},
         {"amount": Decimal("1e100000")},
         {"amount": Decimal("0")},
@@ -44,8 +51,10 @@ def test_payment_request_normalizes_currency_and_amount():
         {"amount": Decimal("1.001")},
         {"amount": Decimal("NaN")},
         {"currency": "EURO"},
+        {"currency": None},
         {"currency": "1$"},
         {"idempotency_key": ""},
+        {"idempotency_key": None},
         {"idempotency_key": "x" * 129},
     ],
 )
