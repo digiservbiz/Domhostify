@@ -5,7 +5,7 @@
 **Overall progress:** 90%
 
 ## Executive status
-DomHostify has a tested persistent catalog/API foundation and marketplace listing, ownership, moderation, Make Offer, and Buy Now reservation flows. The latest previously verified CI run passed 56 tests and the clean migration round-trip. Payment foundation files have now been committed; their new tests still require CI verification, so the overall percentage remains 90% until results are confirmed.
+DomHostify has a tested persistent catalog/API foundation and marketplace listing, ownership, moderation, Make Offer, and Buy Now reservation flows. The latest previously verified CI run passed 56 tests and the clean migration round-trip. Payment foundation files and transaction state-machine guards have now been committed. New payment and trusted-actor tests still require CI verification, so the overall percentage remains 90% until results are confirmed.
 
 ## Workstream tracker
 | Workstream | Status | Progress | Notes |
@@ -31,7 +31,9 @@ DomHostify has a tested persistent catalog/API foundation and marketplace listin
 - [x] Payment amount/currency/idempotency validation
 - [x] Disabled-by-default payment provider that cannot report success
 - [x] Generic HMAC-SHA256 webhook signature helper
-- [ ] New payment tests confirmed by CI
+- [x] Payment-related state transitions restricted to trusted system/provider/admin actors
+- [x] Tests added for buyer/seller spoofing attempts against payment transitions
+- [ ] New payment and transaction-guard tests confirmed by CI
 
 ## Remaining release blockers
 - [ ] Browser/runtime smoke test against a running API
@@ -45,7 +47,7 @@ DomHostify has a tested persistent catalog/API foundation and marketplace listin
 - [ ] Auctions
 
 ## Next attack sequence
-1. Verify new payment tests and the complete CI run.
+1. Verify new payment and trusted-actor tests and the complete CI run.
 2. Implement real account/session/role authorization.
 3. Add browser smoke automation for public frontend + API.
 4. Integrate a chosen payment provider only after configuration and provider-specific webhook tests.
