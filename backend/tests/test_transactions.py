@@ -121,3 +121,58 @@ def test_transaction_actor_and_note_are_validated():
                 )
     finally:
         engine.dispose()
+
+
+
+@pytest.mark.parametrize(
+    ("current", "target", "actor"),
+    [
+        ("payment_pending", "paid", "buyer"),
+        ("payment_pending", "paid", "seller"),
+        ("payment_pending", "paid", "admin"),
+        ("payment_pending", "paid", "system"),
+        ("accepted", "payment_pending", "buyer"),
+        ("paid", "refunded", "buyer"),
+        ("paid", "refunded", "seller"),
+    ],
+)
+def test_payment_state_changes_require_trusted_actor(current, target, actor):
+    engine, Session = _session()
+    try:
+        with Session() as db:
+            transaction = _transaction()
+            transaction.status = current
+            db.add(transaction)
+            db.flush()
+            with pytest.raises(ValueError):
+                transition_transaction(
+                    db,
+                    transaction=transaction,
+                    target_status=target,
+                    actor_type=actor,
+                )
+            assert transaction.status == current
+            assert db.scalars(select(MarketplaceTransactionEvent)).all() == []
+    finally:
+        engine.dispose()
+
+
+def test_only_payment_provider_can_mark_transaction_paid():
+    engine, Session = _session()
+    try:
+        with Session() as db:
+            transaction = _transaction()
+            transaction.status = "payment_pending"
+            db.add(transaction)
+            db.flush()
+            event = transition_transaction(
+                db,
+                transaction=transaction,
+                target_status="paid",
+                actor_type="payment_provider",
+                actor_ref="provider-event-ref",
+            )
+            assert transaction.status == "paid"
+            assert event.actor_type == "payment_provider"
+    finally:
+        engine.dispose()
