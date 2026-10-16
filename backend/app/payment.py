@@ -54,6 +54,8 @@ def validate_payment_request(request: PaymentIntentRequest) -> PaymentIntentRequ
     # when normalizing extremely large Decimal values.
     if amount.adjusted() > 9:
         raise PaymentValidationError("Amount exceeds the supported transaction limit.")
+    if not isinstance(request.currency, str):
+        raise PaymentValidationError("Currency must be a three-letter ISO-style code.")
     currency = request.currency.strip().upper()
     if not re.fullmatch(r"[A-Z]{3}", currency):
         raise PaymentValidationError("Currency must be a three-letter ISO-style code.")
