@@ -12,9 +12,9 @@
     .hero{padding:72px 0 48px;text-align:center}.eyebrow{display:inline-flex;border:1px solid #38516c;background:#15253a;color:var(--accent);border-radius:99px;padding:6px 12px;font-size:.8rem;font-weight:700;letter-spacing:.04em}.hero h1{font-size:clamp(2.4rem,6vw,4.5rem);line-height:1.03;letter-spacing:-.065em;max-width:850px;margin:22px auto 18px}.hero p{color:var(--muted);max-width:650px;margin:0 auto 28px;font-size:1.08rem}
     .search{display:flex;gap:10px;max-width:720px;margin:auto;background:#fff;padding:7px;border-radius:16px;box-shadow:0 20px 80px #0005}.search input{flex:1;min-width:0;border:0;padding:12px 14px;color:#10182a;background:transparent;outline:none}.search button,.btn{background:var(--accent);color:#0b1720;font-weight:800;border:0;border-radius:11px;padding:12px 18px;cursor:pointer}.hint{font-size:.8rem;color:var(--muted);margin-top:12px}.tabs{display:flex;justify-content:center;gap:8px;margin:28px 0 0;flex-wrap:wrap}.tab{background:#121a2e;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:8px 16px;cursor:pointer}.tab.active{border-color:var(--accent);color:var(--accent)}
     .section{padding:36px 0 64px}.section-head{display:flex;justify-content:space-between;gap:16px;align-items:end;margin-bottom:20px}.section h2{font-size:1.65rem;letter-spacing:-.04em;margin:0}.section-head p{color:var(--muted);margin:5px 0 0}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.card{background:linear-gradient(150deg,#151f35,#101729);border:1px solid var(--line);border-radius:18px;padding:22px;min-height:170px}.card .icon{font-size:1.5rem}.card h3{margin:12px 0 6px}.card p{color:var(--muted);margin:0;font-size:.93rem}.card a{display:inline-block;margin-top:16px;color:var(--accent);text-decoration:none;font-weight:700}
-    .results{display:none;max-width:760px;margin:18px auto 0;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}.results.show{display:block}.result{padding:12px 0;border-bottom:1px solid var(--line)}.result:last-child{border-bottom:0}.result small{color:var(--muted);display:block}.pill{font-size:.75rem;border:1px solid #3a5365;color:var(--accent);padding:2px 8px;border-radius:99px}
+    .results{display:none;max-width:760px;margin:18px auto 0;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}.results.show{display:block}.result{padding:12px 0;border-bottom:1px solid var(--line)}.result:last-child{border-bottom:0}.result small{color:var(--muted);display:block}.pill{font-size:.75rem;border:1px solid #3a5365;color:var(--accent);padding:2px 8px;border-radius:99px}.price{font-weight:800;margin-top:4px}.muted{color:var(--muted)}
     footer{border-top:1px solid #ffffff16;padding:24px 0;color:var(--muted);font-size:.82rem}.foot{display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap}.notice{margin-top:12px;font-size:.8rem;color:var(--muted)}
-    @media(max-width:720px){nav{gap:12px;font-size:.8rem}.top{align-items:flex-start}.hero{padding:52px 0 34px}.search{flex-direction:column;background:transparent;padding:0}.search input{background:white;border-radius:10px;padding:16px}.search button{padding:15px}.grid{grid-template-columns:1fr}.section-head{display:block}}
+    @media(max-width:720px){nav{gap:12px;font-size:.8rem}.top{align-items:flex-start}.hero{padding:52px 0 34px}.search{flex-direction:column;background:transparent;padding:0}.search input{background:white;border-radius:10px;padding:16px}.search button{padding:15px}.grid{grid-template-columns:1fr}.section-head{display:block}.section-head .btn{margin-top:12px}}
   </style>
 </head>
 <body>
@@ -42,7 +42,7 @@
   <section class="wrap section" id="domains">
     <div class="section-head"><div><h2>Everything to get online</h2><p>Start with the essentials, then grow your business.</p></div></div>
     <div class="grid">
-      <article class="card"><div class="icon">⌕</div><h3>Find your domain</h3><p>Search your idea and compare registrar offers once live provider integrations are connected.</p><a href="#domain-form">Search domains →</a></article>
+      <article class="card"><div class="icon">⌕</div><h3>Find your domain</h3><p>Search your idea and compare stored registrar offers when verified catalog data exists.</p><a href="#domain-form">Search domains →</a></article>
       <article class="card" id="hosting"><div class="icon">◈</div><h3>Choose your hosting</h3><p>Compare plans by budget, website type, features, and renewal cost — not just the introductory offer.</p><a href="#hosting-plans">Explore hosting →</a></article>
       <article class="card" id="marketplace"><div class="icon">◇</div><h3>Premium domains</h3><p>Explore aftermarket listings and find a name that is already owned and offered for sale.</p><a href="#marketplace-listings">Explore marketplace →</a></article>
     </div>
@@ -53,7 +53,7 @@
   </section>
   <section class="wrap section" id="marketplace-listings">
     <div class="section-head"><div><h2>Premium domain marketplace</h2><p>Approved, ownership-verified database listings only.</p></div><button class="btn" id="load-listings" type="button">Load listings</button></div>
-    <div class="grid" id="listing-results"><article class="card"><h3>Find a name with a head start</h3><p>Marketplace inventory will be connected in a later milestone. Current examples are fictional demo data.</p></article></div>
+    <div class="grid" id="listing-results"><article class="card"><h3>Find a name with a head start</h3><p>Only approved, ownership-verified inventory will be shown here.</p></article></div>
   </section>
 </main>
 <footer><div class="wrap foot"><div>© DomHostify · Your online business starts here.</div><div>Domain availability is unverified until a live registrar adapter is configured. Marketplace checkout and transfer are not enabled.</div></div></footer>
@@ -61,36 +61,48 @@
 // Override before this script with: window.DOMHOSTIFY_API_BASE = 'https://your-api.example';
 // Never place seller, buyer, or admin API tokens in this public frontend.
 const API_BASE = String(window.DOMHOSTIFY_API_BASE || 'http://127.0.0.1:8000').replace(/\/+$/, '');
-const escapeHtml = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const results = document.getElementById('domain-results');
+const money = (value, currency) => value == null ? 'Price not provided' : escapeHtml(currency || 'EUR') + ' ' + Number(value).toFixed(2);
+
 document.getElementById('domain-form').addEventListener('submit', async event => {
   event.preventDefault();
-  const query = document.getElementById('domain-query').value.trim();
+  const query = document.getElementById('domain-query').value.trim().toLowerCase();
   results.classList.add('show');
-  results.innerHTML = '<p>Searching demo catalog…</p>';
+  results.innerHTML = '<p>Searching…</p>';
   try {
     const hasExtension = query.includes('.');
-    const endpoint = hasExtension
-      ? '/api/v1/domains/search?q=' + encodeURIComponent(query)
-      : '/api/v1/domains/suggestions?q=' + encodeURIComponent(query);
-    const response = await fetch(API_BASE + endpoint);
+    if (hasExtension) {
+      const response = await fetch(API_BASE + '/api/v1/domains/offers?domain=' + encodeURIComponent(query));
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || 'Search failed');
+      if (!Array.isArray(data) || data.length === 0) {
+        results.innerHTML = '<p><strong>' + escapeHtml(query) + '</strong></p><p class="muted">No verified registrar offers are stored for this domain yet.</p><p class="notice">This does not mean the domain is unavailable. Live registrar availability is not connected yet.</p>';
+        return;
+      }
+      results.innerHTML = '<p><strong>' + escapeHtml(query) + '</strong> <span class="pill">Stored verified offers</span></p>' + data.map(item => '<div class="result"><strong>' + escapeHtml(item.registrar_key) + '</strong><div class="price">' + money(item.registration_price,item.currency) + ' registration</div><small>Renewal: ' + money(item.renewal_price,item.currency) + ' · checked ' + escapeHtml(item.checked_at || 'date unavailable') + '</small></div>').join('') + '<p class="notice">Catalog comparison only. The provider was not queried live by this search.</p>';
+      return;
+    }
+    const response = await fetch(API_BASE + '/api/v1/domains/suggestions?q=' + encodeURIComponent(query));
     const data = await response.json();
     if (!response.ok) throw new Error(data.detail || 'Search failed');
     if (!Array.isArray(data) || data.length === 0) {
       results.innerHTML = '<p>No domain candidates returned. Try another name.</p>';
       return;
     }
-    results.innerHTML = '<p class="notice">Demo lookup only — no registrar has been queried, so availability is not confirmed.</p>' + data.map(item => '<div class="result"><strong>' + escapeHtml(item.domain) + '</strong> <span class="pill">Availability unknown</span><small>' + escapeHtml(item.note) + '</small></div>').join('');
+    results.innerHTML = '<p class="notice">Suggestions only — availability is not confirmed because no registrar is queried live.</p>' + data.map(item => '<div class="result"><strong>' + escapeHtml(item.domain) + '</strong> <span class="pill">Availability unknown</span><small>' + escapeHtml(item.note) + '</small></div>').join('');
   } catch (error) {
-    results.innerHTML = '<p>Could not reach the API. Start the backend using the README instructions, then try again. ' + escapeHtml(error.message) + '</p>';
+    results.innerHTML = '<p>Could not reach the API. Start the backend using the README instructions, then try again.</p><p class="notice">' + escapeHtml(error.message) + '</p>';
   }
 });
+
 document.querySelectorAll('.tab').forEach(button => button.addEventListener('click', () => {
   document.querySelectorAll('.tab').forEach(tab => tab.classList.toggle('active', tab === button));
   const target = button.dataset.target;
   if (target === 'domains') document.getElementById('domain-query').focus();
   else document.getElementById(target).scrollIntoView({behavior:'smooth'});
 }));
+
 document.getElementById('load-hosting').addEventListener('click', async () => {
   const root = document.getElementById('hosting-results');
   root.innerHTML = '<article class="card"><p>Loading plans…</p></article>';
@@ -102,9 +114,10 @@ document.getElementById('load-hosting').addEventListener('click', async () => {
       root.innerHTML = '<article class="card"><h3>No verified hosting plans yet</h3><p>This section only displays active database records with verified source status and known introductory pricing. Demo examples are intentionally not presented as real offers.</p></article>';
       return;
     }
-    root.innerHTML = plans.map(plan => '<article class="card"><span class="pill">' + escapeHtml(plan.source_status || 'database') + '</span><h3>' + escapeHtml(plan.plan_name) + '</h3><p>' + escapeHtml(plan.provider_key) + ' · ' + escapeHtml(plan.site_type) + '</p><h3>' + escapeHtml(plan.currency) + ' ' + Number(plan.introductory_price).toFixed(2) + ' <small>/ ' + escapeHtml(plan.billing_period) + '</small></h3><p>Renewal: ' + (plan.renewal_price == null ? 'Not provided' : escapeHtml(plan.currency) + ' ' + Number(plan.renewal_price).toFixed(2) + ' / ' + escapeHtml(plan.billing_period)) + '</p><p>' + escapeHtml(plan.storage) + '</p><p>' + escapeHtml(plan.support) + '</p><p class="notice">Database record; provider is not queried live.</p></article>').join('');
+    root.innerHTML = plans.map(plan => '<article class="card"><span class="pill">' + escapeHtml(plan.source_status || 'database') + '</span><h3>' + escapeHtml(plan.plan_name) + '</h3><p>' + escapeHtml(plan.provider_key) + ' · ' + escapeHtml(plan.site_type) + '</p><h3>' + money(plan.introductory_price,plan.currency) + ' <small>/ ' + escapeHtml(plan.billing_period) + '</small></h3><p>Renewal: ' + money(plan.renewal_price,plan.currency) + ' / ' + escapeHtml(plan.billing_period) + '</p><p>' + escapeHtml(plan.storage) + '</p><p>' + escapeHtml(plan.support) + '</p><p class="notice">Database record; provider is not queried live.</p></article>').join('');
   } catch (error) { root.innerHTML = '<article class="card"><p>Could not reach the API. Start the backend and retry.</p></article>'; }
 });
+
 document.getElementById('load-listings').addEventListener('click', async () => {
   const root = document.getElementById('listing-results');
   root.innerHTML = '<article class="card"><p>Loading listings…</p></article>';
@@ -116,7 +129,7 @@ document.getElementById('load-listings').addEventListener('click', async () => {
       root.innerHTML = '<article class="card"><h3>No approved listings yet</h3><p>Only active listings that have passed ownership verification and moderation are shown here. Demo examples are not mixed into real inventory.</p></article>';
       return;
     }
-    root.innerHTML = listings.map(item => '<article class="card"><span class="pill">' + escapeHtml(item.sale_type.replace('_',' ')) + '</span><h3>' + escapeHtml(item.domain) + '</h3><p>Ownership: ' + escapeHtml(item.ownership_status) + ' · Review: ' + escapeHtml(item.moderation_status) + '</p><h3>' + escapeHtml(item.currency) + ' ' + Number(item.asking_price).toLocaleString('en-IE',{minimumFractionDigits:2,maximumFractionDigits:2}) + '</h3><p>Marketplace listing. Checkout and domain transfer are not enabled.</p></article>').join('');
+    root.innerHTML = listings.map(item => '<article class="card"><span class="pill">' + escapeHtml(item.sale_type.replace('_',' ')) + '</span><h3>' + escapeHtml(item.domain) + '</h3><p>Ownership: ' + escapeHtml(item.ownership_status) + ' · Review: ' + escapeHtml(item.moderation_status) + '</p><h3>' + money(item.asking_price,item.currency) + '</h3><p>Marketplace listing. Checkout and domain transfer are not enabled.</p></article>').join('');
   } catch (error) { root.innerHTML = '<article class="card"><p>Could not reach the API. Start the backend and retry.</p></article>'; }
 });
 </script>
