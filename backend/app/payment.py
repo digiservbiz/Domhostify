@@ -59,6 +59,8 @@ def validate_payment_request(request: PaymentIntentRequest) -> PaymentIntentRequ
     currency = request.currency.strip().upper()
     if not re.fullmatch(r"[A-Z]{3}", currency):
         raise PaymentValidationError("Currency must be a three-letter ISO-style code.")
+    if not isinstance(request.idempotency_key, str):
+        raise PaymentValidationError("Idempotency key must contain 1–128 characters.")
     key = request.idempotency_key.strip()
     if not key or len(key) > 128:
         raise PaymentValidationError("Idempotency key must contain 1–128 characters.")
