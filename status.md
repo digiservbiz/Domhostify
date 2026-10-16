@@ -5,7 +5,7 @@
 **Overall progress:** 90%
 
 ## Executive status
-DomHostify has a tested persistent catalog/API foundation and marketplace listing, ownership, moderation, Make Offer, and Buy Now reservation flows. The latest previously verified CI run passed 56 tests and the clean migration round-trip. Payment foundation files and transaction state-machine guards have now been committed. Webhook signature parsing was hardened to reject malformed and non-ASCII signatures safely. New payment and trusted-actor tests still require CI verification, so the overall percentage remains 90% until results are confirmed.
+DomHostify has a tested persistent catalog/API foundation and marketplace listing, ownership, moderation, Make Offer, and Buy Now reservation flows. The latest previously verified CI run passed 56 tests and the clean migration round-trip. Payment foundation files and transaction state-machine guards have now been committed. Webhook signature parsing was hardened to reject malformed and non-ASCII signatures safely. Payment validation now rejects boolean/non-integer transaction IDs and oversized monetary amounts before normalization. New payment and trusted-actor tests still require CI verification, so the overall percentage remains 90% until results are confirmed.
 
 ## Workstream tracker
 | Workstream | Status | Progress | Notes |
@@ -28,7 +28,7 @@ DomHostify has a tested persistent catalog/API foundation and marketplace listin
 - [x] Clean database migration round-trip in prior CI
 - [x] No private bootstrap tokens embedded in frontend code
 - [x] Provider-neutral payment request/result contract
-- [x] Payment amount/currency/idempotency validation
+- [x] Payment amount/currency/idempotency validation, including numeric bounds and strict transaction ID typing
 - [x] Disabled-by-default payment provider that cannot report success
 - [x] Generic HMAC-SHA256 webhook signature helper
 - [x] Payment-related state transitions restricted to trusted system/provider/admin actors
