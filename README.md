@@ -13,7 +13,7 @@ DomHostify helps people move from a business idea to an online presence: find a 
 6. Seller portfolio, listing management, pricing guidance, and analytics.
 
 ## Current delivery stage
-**Phase 4 — Marketplace security foundation.** The API includes moderated listings, DNS ownership challenges, Make Offer workflows, and temporary idempotent Buy Now reservations without payment. The public frontend now reads only verified persistent hosting plans and approved marketplace listings; domain availability search remains demo-only until a live registrar adapter is connected. Latest recorded GitHub Actions run passed. See [status.md](status.md), [PRD](docs/PRD.md), and [roadmap](docs/ROADMAP.md). See [status.md](status.md), [PRD](docs/PRD.md), and [roadmap](docs/ROADMAP.md).
+**Phase 4 — Marketplace security foundation.** The API includes moderated listings, DNS ownership challenges, Make Offer workflows, and temporary idempotent Buy Now reservations without payment. A disabled-by-default payment-provider boundary and trusted-actor transaction guards are now in place; live checkout remains unimplemented. The public frontend now reads only verified persistent hosting plans and approved marketplace listings; domain availability search remains demo-only until a live registrar adapter is connected. Latest recorded GitHub Actions run passed. See [status.md](status.md), [PRD](docs/PRD.md), and [roadmap](docs/ROADMAP.md).
 
 ## Project documentation
 - [Product requirements (PRD)](docs/PRD.md)
