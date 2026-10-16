@@ -36,6 +36,9 @@ def test_payment_request_normalizes_currency_and_amount():
     "overrides",
     [
         {"transaction_id": 0},
+        {"transaction_id": True},
+        {"amount": Decimal("10000000000.00")},
+        {"amount": Decimal("1e100000")},
         {"amount": Decimal("0")},
         {"amount": Decimal("-1")},
         {"amount": Decimal("1.001")},
