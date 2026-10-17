@@ -1,6 +1,7 @@
 """Password and opaque-session authentication for DomHostify accounts."""
 import hashlib
 import hmac
+import os
 import secrets
 from datetime import timedelta
 
@@ -80,6 +81,16 @@ def authenticate_request(authorization: str | None, db: Session, *, required_rol
         raise HTTPException(status_code=503, detail="Account database is not initialized. Apply database migrations first.") from exc
 
 
+def _bootstrap_or_session_ref(authorization: str | None, db: Session, role: str) -> str:
+    configured = os.getenv(f"DOMHOSTIFY_{role.upper()}_API_TOKEN", "").strip()
+    if configured and authorization and authorization.startswith("Bearer "):
+        supplied = authorization[7:].strip()
+        if supplied and hmac.compare_digest(supplied, configured):
+            return hashlib.sha256(supplied.encode("utf-8")).hexdigest()[:32]
+    user = authenticate_request(authorization, db, required_role=role)
+    return user.public_ref
+
+
 def require_user(authorization: str | None = Header(default=None), db: Session = Depends(get_db)) -> UserAccount:
     return authenticate_request(authorization, db)
 
@@ -97,12 +108,12 @@ def require_admin(authorization: str | None = Header(default=None), db: Session 
 
 
 def require_seller_ref(authorization: str | None = Header(default=None), db: Session = Depends(get_db)) -> str:
-    return require_seller(authorization, db).public_ref
+    return _bootstrap_or_session_ref(authorization, db, "seller")
 
 
 def require_buyer_ref(authorization: str | None = Header(default=None), db: Session = Depends(get_db)) -> str:
-    return require_buyer(authorization, db).public_ref
+    return _bootstrap_or_session_ref(authorization, db, "buyer")
 
 
 def require_admin_ref(authorization: str | None = Header(default=None), db: Session = Depends(get_db)) -> str:
-    return require_admin(authorization, db).public_ref
+    return _bootstrap_or_session_ref(authorization, db, "admin")
