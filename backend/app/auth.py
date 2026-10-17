@@ -1,7 +1,6 @@
 """Password and opaque-session authentication for DomHostify accounts."""
 import hashlib
 import hmac
-import os
 import secrets
 from datetime import timedelta
 
@@ -40,9 +39,7 @@ def verify_password(password: str, encoded: str) -> bool:
         scheme, iterations, salt_hex, digest_hex = encoded.split("$", 3)
         if scheme != "pbkdf2_sha256":
             return False
-        expected = hashlib.pbkdf2_hmac(
-            "sha256", password.encode("utf-8"), bytes.fromhex(salt_hex), int(iterations)
-        )
+        expected = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), bytes.fromhex(salt_hex), int(iterations))
         return hmac.compare_digest(expected.hex(), digest_hex)
     except (AttributeError, ValueError, TypeError):
         return False
@@ -54,21 +51,12 @@ def _token_hash(token: str) -> str:
 
 def create_session(db: Session, user: UserAccount) -> tuple[str, UserSession]:
     raw_token = secrets.token_urlsafe(48)
-    session = UserSession(
-        user_id=user.id,
-        token_hash=_token_hash(raw_token),
-        expires_at=utc_now() + timedelta(hours=SESSION_TTL_HOURS),
-    )
+    session = UserSession(user_id=user.id, token_hash=_token_hash(raw_token), expires_at=utc_now() + timedelta(hours=SESSION_TTL_HOURS))
     db.add(session)
     return raw_token, session
 
 
-def authenticate_request(
-    authorization: str | None,
-    db: Session,
-    *,
-    required_role: str | None = None,
-) -> UserAccount:
+def authenticate_request(authorization: str | None, db: Session, *, required_role: str | None = None) -> UserAccount:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Bearer session authentication required.")
     token = authorization[7:].strip()
@@ -92,25 +80,29 @@ def authenticate_request(
         raise HTTPException(status_code=503, detail="Account database is not initialized. Apply database migrations first.") from exc
 
 
-def require_user(
-    authorization: str | None = Header(default=None), db: Session = Depends(get_db)
-) -> UserAccount:
+def require_user(authorization: str | None = Header(default=None), db: Session = Depends(get_db)) -> UserAccount:
     return authenticate_request(authorization, db)
 
 
-def require_seller(
-    authorization: str | None = Header(default=None), db: Session = Depends(get_db)
-) -> UserAccount:
+def require_seller(authorization: str | None = Header(default=None), db: Session = Depends(get_db)) -> UserAccount:
     return authenticate_request(authorization, db, required_role="seller")
 
 
-def require_buyer(
-    authorization: str | None = Header(default=None), db: Session = Depends(get_db)
-) -> UserAccount:
+def require_buyer(authorization: str | None = Header(default=None), db: Session = Depends(get_db)) -> UserAccount:
     return authenticate_request(authorization, db, required_role="buyer")
 
 
-def require_admin(
-    authorization: str | None = Header(default=None), db: Session = Depends(get_db)
-) -> UserAccount:
+def require_admin(authorization: str | None = Header(default=None), db: Session = Depends(get_db)) -> UserAccount:
     return authenticate_request(authorization, db, required_role="admin")
+
+
+def require_seller_ref(authorization: str | None = Header(default=None), db: Session = Depends(get_db)) -> str:
+    return require_seller(authorization, db).public_ref
+
+
+def require_buyer_ref(authorization: str | None = Header(default=None), db: Session = Depends(get_db)) -> str:
+    return require_buyer(authorization, db).public_ref
+
+
+def require_admin_ref(authorization: str | None = Header(default=None), db: Session = Depends(get_db)) -> str:
+    return require_admin(authorization, db).public_ref
