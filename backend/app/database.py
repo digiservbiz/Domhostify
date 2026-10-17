@@ -15,6 +15,28 @@ class Base(DeclarativeBase):
     pass
 
 
+class UserAccount(Base):
+    __tablename__ = "user_accounts"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    public_ref: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String(256))
+    role: Mapped[str] = mapped_column(String(20), default="buyer", server_default="buyer", index=True)
+    active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, server_default=func.now())
+
+
+class UserSession(Base):
+    __tablename__ = "user_sessions"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, server_default=func.now())
+
+
 class RegistrarOffer(Base):
     __tablename__ = "registrar_offers"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
