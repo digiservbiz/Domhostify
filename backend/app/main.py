@@ -18,13 +18,15 @@ from sqlalchemy import select
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
+from backend.app.account_api import router as account_router
 from backend.app.database import AffiliateClick as DBAffiliateClick, HostingPlanRecord as DBHostingPlan, MarketplaceListing as DBMarketplaceListing, OwnershipChallenge as DBOwnershipChallenge, RegistrarOffer as DBRegistrarOffer, get_db, utc_now
 from backend.app.marketplace import add_listing_audit_event
 from backend.app.providers import DemoRegistrarProvider
 from backend.app.ownership_api import router as ownership_router
 from backend.app.transactions_api import router as transactions_router
 
-app = FastAPI(title="DomHostify API", description="Domain discovery, hosting comparison, and domain marketplace API. Catalog entries currently use illustrative demo data, not live offers.", version="0.3.0")
+app = FastAPI(title="DomHostify API", description="Domain discovery, hosting comparison, and domain marketplace API. Catalog entries currently use illustrative demo data, not live offers.", version="0.4.0")
+app.include_router(account_router)
 app.include_router(ownership_router)
 app.include_router(transactions_router)
 
@@ -33,7 +35,7 @@ app.add_middleware(
     allow_origins=[origin.strip() for origin in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5500,http://127.0.0.1:5500").split(",") if origin.strip()],
     allow_credentials=False,
     allow_methods=["GET", "POST", "PATCH", "DELETE"],
-    allow_headers=["Content-Type", "Authorization"],
+    allow_headers=["Content-Type", "Authorization", "Idempotency-Key"],
 )
 
 _LABEL_RE = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$")
@@ -253,212 +255,6 @@ def affiliate_redirect(provider_key: str, db: Session = Depends(get_db)) -> Redi
     return RedirectResponse(url=destination, status_code=302)
 
 
-@app.post("/api/v1/marketplace/seller/listings", response_model=PersistentMarketplaceListing, status_code=201, tags=["marketplace"])
-def submit_seller_listing(payload: SellerListingCreate, seller_ref: str = Depends(_require_seller_auth), db: Session = Depends(get_db)) -> PersistentMarketplaceListing:
-    """Submit a seller listing into review; never auto-approves or verifies ownership."""
-    try:
-        domain = normalize_domain_query(payload.domain)
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-    currency = payload.currency.strip().upper()
-    if not re.fullmatch(r"[A-Z]{3}", currency):
-        raise HTTPException(status_code=422, detail="Currency must be a three-letter ISO-style code.")
-    sale_type = payload.sale_type.strip().lower()
-    if sale_type not in {"buy_now", "make_offer"}:
-        raise HTTPException(status_code=422, detail="Sale type must be buy_now or make_offer.")
-    listing = DBMarketplaceListing(domain=domain, asking_price=payload.asking_price, currency=currency, sale_type=sale_type, listing_status="pending_review", ownership_status="unverified", moderation_status="pending", seller_ref=seller_ref, active=False)
-    try:
-        db.add(listing)
-        db.flush()
-        add_listing_audit_event(db, listing_id=listing.id, event_type="seller_listing_submitted", actor_type="seller", actor_ref=seller_ref)
-        db.commit()
-        db.refresh(listing)
-    except OperationalError as exc:
-        db.rollback()
-        raise HTTPException(status_code=503, detail="Marketplace database is not initialized. Apply database migrations first.") from exc
-    return PersistentMarketplaceListing(id=listing.id, domain=listing.domain, asking_price=listing.asking_price, currency=listing.currency, sale_type=listing.sale_type, listing_status=listing.listing_status, ownership_status=listing.ownership_status, moderation_status=listing.moderation_status, updated_at=listing.updated_at.isoformat() if listing.updated_at else None)
-
-
-@app.get("/api/v1/marketplace/seller/listings", response_model=list[PersistentMarketplaceListing], tags=["marketplace"])
-def list_seller_listings(seller_ref: str = Depends(_require_seller_auth), db: Session = Depends(get_db)) -> list[PersistentMarketplaceListing]:
-    """Return only listings belonging to the authenticated bootstrap seller identity."""
-    statement = select(DBMarketplaceListing).where(DBMarketplaceListing.seller_ref == seller_ref).order_by(DBMarketplaceListing.created_at.desc()).limit(100)
-    try:
-        records = db.scalars(statement).all()
-    except OperationalError as exc:
-        raise HTTPException(status_code=503, detail="Marketplace database is not initialized. Apply database migrations first.") from exc
-    return [
-        PersistentMarketplaceListing(
-            id=r.id,
-            domain=r.domain,
-            asking_price=r.asking_price,
-            currency=r.currency,
-            sale_type=r.sale_type,
-            listing_status=r.listing_status,
-            ownership_status=r.ownership_status,
-            moderation_status=r.moderation_status,
-            updated_at=r.updated_at.isoformat() if r.updated_at else None,
-        )
-        for r in records
-    ]
-
-
-@app.patch("/api/v1/marketplace/seller/listings/{listing_id}", response_model=PersistentMarketplaceListing, tags=["marketplace"])
-def update_seller_listing(
-    listing_id: int,
-    payload: SellerListingUpdate,
-    seller_ref: str = Depends(_require_seller_auth),
-    db: Session = Depends(get_db),
-) -> PersistentMarketplaceListing:
-    """Edit an owned listing; changes unpublish it and require a fresh moderation decision."""
-    changes = payload.model_dump(exclude_unset=True)
-    if not changes:
-        raise HTTPException(status_code=422, detail="Provide at least one field to update.")
-    if any(value is None for value in changes.values()):
-        raise HTTPException(status_code=422, detail="Updated fields cannot be null.")
-    if "currency" in changes:
-        changes["currency"] = changes["currency"].strip().upper()
-        if not re.fullmatch(r"[A-Z]{3}", changes["currency"]):
-            raise HTTPException(status_code=422, detail="Currency must be a three-letter ISO-style code.")
-    if "sale_type" in changes:
-        changes["sale_type"] = changes["sale_type"].strip().lower()
-        if changes["sale_type"] not in {"buy_now", "make_offer"}:
-            raise HTTPException(status_code=422, detail="Sale type must be buy_now or make_offer.")
-    try:
-        listing = db.scalar(select(DBMarketplaceListing).where(
-            DBMarketplaceListing.id == listing_id,
-            DBMarketplaceListing.seller_ref == seller_ref,
-        ))
-        if listing is None:
-            raise HTTPException(status_code=404, detail="Marketplace listing not found.")
-        if listing.listing_status == "withdrawn":
-            raise HTTPException(status_code=409, detail="Withdrawn listings cannot be edited.")
-        for field, value in changes.items():
-            setattr(listing, field, value)
-        listing.active = False
-        listing.listing_status = "pending_review"
-        listing.moderation_status = "pending"
-        add_listing_audit_event(
-            db, listing_id=listing.id, event_type="seller_listing_updated",
-            actor_type="seller", actor_ref=seller_ref,
-            event_note="Listing changes submitted for renewed moderation",
-        )
-        db.commit()
-        db.refresh(listing)
-    except OperationalError as exc:
-        db.rollback()
-        raise HTTPException(status_code=503, detail="Marketplace database is not initialized. Apply database migrations first.") from exc
-    return PersistentMarketplaceListing(
-        id=listing.id, domain=listing.domain, asking_price=listing.asking_price,
-        currency=listing.currency, sale_type=listing.sale_type,
-        listing_status=listing.listing_status, ownership_status=listing.ownership_status,
-        moderation_status=listing.moderation_status,
-        updated_at=listing.updated_at.isoformat() if listing.updated_at else None,
-    )
-
-
-@app.delete("/api/v1/marketplace/seller/listings/{listing_id}", response_model=PersistentMarketplaceListing, tags=["marketplace"])
-def withdraw_seller_listing(
-    listing_id: int,
-    seller_ref: str = Depends(_require_seller_auth),
-    db: Session = Depends(get_db),
-) -> PersistentMarketplaceListing:
-    """Withdraw an owned listing without deleting its audit history or transaction references."""
-    try:
-        listing = db.scalar(select(DBMarketplaceListing).where(
-            DBMarketplaceListing.id == listing_id,
-            DBMarketplaceListing.seller_ref == seller_ref,
-        ))
-        if listing is None:
-            raise HTTPException(status_code=404, detail="Marketplace listing not found.")
-        if listing.listing_status == "withdrawn":
-            return PersistentMarketplaceListing(
-                id=listing.id, domain=listing.domain, asking_price=listing.asking_price,
-                currency=listing.currency, sale_type=listing.sale_type,
-                listing_status=listing.listing_status, ownership_status=listing.ownership_status,
-                moderation_status=listing.moderation_status,
-                updated_at=listing.updated_at.isoformat() if listing.updated_at else None,
-            )
-        listing.active = False
-        listing.listing_status = "withdrawn"
-        listing.moderation_status = "withdrawn"
-        pending_challenges = db.scalars(select(DBOwnershipChallenge).where(
-            DBOwnershipChallenge.listing_id == listing.id,
-            DBOwnershipChallenge.status == "pending",
-        )).all()
-        for challenge in pending_challenges:
-            challenge.status = "superseded"
-        add_listing_audit_event(
-            db, listing_id=listing.id, event_type="seller_listing_withdrawn",
-            actor_type="seller", actor_ref=seller_ref,
-        )
-        db.commit()
-        db.refresh(listing)
-    except OperationalError as exc:
-        db.rollback()
-        raise HTTPException(status_code=503, detail="Marketplace database is not initialized. Apply database migrations first.") from exc
-    return PersistentMarketplaceListing(
-        id=listing.id, domain=listing.domain, asking_price=listing.asking_price,
-        currency=listing.currency, sale_type=listing.sale_type,
-        listing_status=listing.listing_status, ownership_status=listing.ownership_status,
-        moderation_status=listing.moderation_status,
-        updated_at=listing.updated_at.isoformat() if listing.updated_at else None,
-    )
-
-
-@app.post("/api/v1/admin/marketplace/listings/{listing_id}/review", response_model=PersistentMarketplaceListing, tags=["admin"])
-def review_marketplace_listing(
-    listing_id: int,
-    payload: AdminListingReview,
-    admin_ref: str = Depends(_require_admin_auth),
-    db: Session = Depends(get_db),
-) -> PersistentMarketplaceListing:
-    """Approve only verified ownership; rejection always removes public visibility."""
-    decision = payload.decision.strip().lower()
-    if decision not in {"approve", "reject"}:
-        raise HTTPException(status_code=422, detail="Decision must be approve or reject.")
-    try:
-        listing = db.get(DBMarketplaceListing, listing_id)
-        if listing is None:
-            raise HTTPException(status_code=404, detail="Marketplace listing not found.")
-        if decision == "approve":
-            if listing.ownership_status != "verified":
-                raise HTTPException(status_code=409, detail="Ownership must be verified before approval.")
-            listing.moderation_status = "approved"
-            listing.listing_status = "active"
-            listing.active = True
-            event_type = "admin_listing_approved"
-        else:
-            listing.moderation_status = "rejected"
-            listing.listing_status = "rejected"
-            listing.active = False
-            event_type = "admin_listing_rejected"
-        add_listing_audit_event(
-            db,
-            listing_id=listing.id,
-            event_type=event_type,
-            actor_type="admin",
-            actor_ref=admin_ref,
-            event_note=payload.note.strip() if payload.note else None,
-        )
-        db.commit()
-        db.refresh(listing)
-    except OperationalError as exc:
-        db.rollback()
-        raise HTTPException(status_code=503, detail="Marketplace database is not initialized. Apply database migrations first.") from exc
-    return PersistentMarketplaceListing(
-        id=listing.id,
-        domain=listing.domain,
-        asking_price=listing.asking_price,
-        currency=listing.currency,
-        sale_type=listing.sale_type,
-        listing_status=listing.listing_status,
-        ownership_status=listing.ownership_status,
-        moderation_status=listing.moderation_status,
-        updated_at=listing.updated_at.isoformat() if listing.updated_at else None,
-    )
-
-
 @app.get("/api/v1/hosting/plans", response_model=list[HostingPlan], tags=["hosting"])
 def list_hosting_plans(site_type: str | None = Query(default=None, max_length=80), max_price: float | None = Query(default=None, ge=0)) -> list[HostingPlan]:
     plans = DEMO_HOSTING_PLANS
@@ -509,25 +305,13 @@ def list_persistent_marketplace_listings(q: str | None = Query(default=None, max
     return [PersistentMarketplaceListing(id=r.id, domain=r.domain, asking_price=r.asking_price, currency=r.currency, sale_type=r.sale_type, listing_status=r.listing_status, ownership_status=r.ownership_status, moderation_status=r.moderation_status, updated_at=r.updated_at.isoformat() if r.updated_at else None) for r in records]
 
 
-@app.get("/api/v1/marketplace/persistent-listings/{listing_id}", response_model=PersistentMarketplaceListing, tags=["marketplace"])
-def get_persistent_marketplace_listing(listing_id: int, db: Session = Depends(get_db)) -> PersistentMarketplaceListing:
-    statement = select(DBMarketplaceListing).where(DBMarketplaceListing.id == listing_id, DBMarketplaceListing.active.is_(True), DBMarketplaceListing.listing_status == "active", DBMarketplaceListing.ownership_status == "verified", DBMarketplaceListing.moderation_status == "approved")
-    try:
-        record = db.scalar(statement)
-    except OperationalError as exc:
-        raise HTTPException(status_code=503, detail="Marketplace database is not initialized. Apply database migrations first.") from exc
-    if record is None:
-        raise HTTPException(status_code=404, detail="Marketplace listing not found.")
-    return PersistentMarketplaceListing(id=record.id, domain=record.domain, asking_price=record.asking_price, currency=record.currency, sale_type=record.sale_type, listing_status=record.listing_status, ownership_status=record.ownership_status, moderation_status=record.moderation_status, updated_at=record.updated_at.isoformat() if record.updated_at else None)
-
-
 @app.get("/api/v1/domains/offers", response_model=list[RegistrarOfferResult], tags=["domains"])
-def list_verified_registrar_offers(domain: str = Query(min_length=4, max_length=253), db: Session = Depends(get_db)) -> list[RegistrarOfferResult]:
+def list_registrar_offers(domain: str = Query(min_length=3, max_length=253), db: Session = Depends(get_db)) -> list[RegistrarOfferResult]:
     try:
-        normalized_domain = normalize_domain_query(domain)
+        normalized = normalize_domain_query(domain)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    statement = select(DBRegistrarOffer).where(DBRegistrarOffer.domain == normalized_domain, DBRegistrarOffer.source_status == "verified", DBRegistrarOffer.registration_price.is_not(None)).order_by(DBRegistrarOffer.registration_price.asc()).limit(100)
+    statement = select(DBRegistrarOffer).where(DBRegistrarOffer.domain == normalized, DBRegistrarOffer.registration_price.is_not(None), DBRegistrarOffer.source_status == "verified").order_by(DBRegistrarOffer.registration_price.asc()).limit(100)
     try:
         records = db.scalars(statement).all()
     except OperationalError as exc:
