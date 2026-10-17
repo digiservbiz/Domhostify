@@ -5,7 +5,7 @@
 **Overall progress:** 93%
 
 ## Executive status
-DomHostify has a persistent catalog/API foundation and marketplace listing, ownership, moderation, Make Offer, and Buy Now reservation flows. Payment foundation and transaction state-machine guards are committed. A real account/session foundation is now added: PBKDF2 password hashing, opaque hashed sessions, buyer/seller roles, registration, login, logout, and `/me` are implemented with migration 0010. Ownership challenge/verification accepts the session-backed seller dependency while retaining legacy bootstrap-token compatibility. The auth test suite now also covers the session role-reference bridge and buyer/seller/admin permission boundaries. Main marketplace and transaction routes still need the same dependency migration. Runtime verification of the newest account work still requires CI.
+DomHostify has a persistent catalog/API foundation and marketplace listing, ownership, moderation, Make Offer, and Buy Now reservation flows. Payment foundation and transaction state-machine guards are committed. A real account/session foundation is now added: PBKDF2 password hashing, opaque hashed sessions, buyer/seller roles, registration, login, logout, and `/me` are implemented with migration 0010. Ownership challenge/verification accepts the session-backed seller dependency while retaining legacy bootstrap-token compatibility. The auth test suite now also covers the session role-reference bridge and buyer/seller permission boundaries. Main marketplace and transaction routes still need the same dependency migration. Runtime verification of the newest account work still requires CI.
 
 ## Workstream tracker
 | Workstream | Status | Progress | Notes |
