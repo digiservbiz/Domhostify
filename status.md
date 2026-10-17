@@ -2,17 +2,17 @@
 
 **Last updated:** 2026-10-18  
 **Current phase:** Phase 5 — Account/session security and marketplace release hardening  
-**Overall progress:** 92%
+**Overall progress:** 93%
 
 ## Executive status
-DomHostify has a persistent catalog/API foundation and marketplace listing, ownership, moderation, Make Offer, and Buy Now reservation flows. Payment foundation and transaction state-machine guards are committed. A real account/session foundation is now added: PBKDF2 password hashing, opaque hashed sessions, buyer/seller roles, registration, login, logout, and `/me` are implemented with migration 0010 and isolated account-flow tests. Marketplace/ownership/transaction routes still use their existing bootstrap-token dependencies and must be switched to session roles before release. Runtime verification of the newest account work still requires CI.
+DomHostify has a persistent catalog/API foundation and marketplace listing, ownership, moderation, Make Offer, and Buy Now reservation flows. Payment foundation and transaction state-machine guards are committed. A real account/session foundation is now added: PBKDF2 password hashing, opaque hashed sessions, buyer/seller roles, registration, login, logout, and `/me` are implemented with migration 0010 and isolated account-flow tests. Ownership challenge/verification now accepts the session-backed seller dependency while retaining the legacy bootstrap-token compatibility path. Main marketplace and transaction routes still need the same dependency migration. Runtime verification of the newest account work still requires CI.
 
 ## Workstream tracker
 | Workstream | Status | Progress | Notes |
 |---|---|---:|---|
 | Product vision and scope | In progress | 82% | Domain, hosting and marketplace pillars documented |
-| Architecture and data boundaries | In progress | 86% | Account/session boundary and payment contract added |
-| Security, privacy, compliance | In progress | 86% | Password hashing, opaque sessions, role checks; provider-specific controls pending |
+| Architecture and data boundaries | In progress | 88% | Account/session boundary and payment contract added |
+| Security, privacy, compliance | In progress | 88% | Password hashing, opaque sessions, role checks, ownership auth bridge; provider-specific controls pending |
 | API implementation | In progress | 98% | Catalog and marketplace APIs implemented; live checkout is not |
 | Database and migrations | In progress | 98% | Migrations 0001–0010 committed; prior 0001–0009 round-trip passed CI |
 | Frontend | In progress | 60% | Public catalog UI; account/dashboard UI and browser smoke pending |
@@ -32,11 +32,12 @@ DomHostify has a persistent catalog/API foundation and marketplace listing, owne
 - [x] Buyer/seller account registration with role restrictions
 - [x] Login, logout, session expiry/revocation, and `/me` account endpoints
 - [x] Migration 0010 for user accounts and sessions
+- [x] Ownership endpoints use the session-backed seller reference dependency with legacy bootstrap compatibility
 - [x] Isolated account registration/login/logout tests committed
 - [ ] New account/auth tests confirmed by CI
 
 ## Remaining release blockers
-- [ ] Replace bootstrap seller/buyer/admin tokens with real session role dependencies across marketplace, ownership, and transaction APIs
+- [ ] Replace bootstrap seller/buyer/admin tokens with real session role dependencies across main marketplace and transaction APIs
 - [ ] Seller dashboard connected to real sessions and full admin UI
 - [ ] Browser/runtime smoke test against a running API
 - [ ] Real payment provider, checkout endpoint, provider-specific signed webhook handling, refunds/disputes/reconciliation
@@ -47,7 +48,7 @@ DomHostify has a persistent catalog/API foundation and marketplace listing, owne
 - [ ] Auctions
 
 ## Next attack sequence
-1. Wire session roles into seller, buyer, admin, and ownership/transaction dependencies while preserving authorization boundaries.
+1. Wire session roles into main marketplace and transaction dependencies while preserving bootstrap compatibility.
 2. Add account-aware frontend login/register/session handling and seller/admin dashboard foundations.
 3. Verify the full migration chain through 0010 and run the complete test suite in CI.
 4. Add browser smoke automation for public + authenticated flows.
@@ -57,7 +58,7 @@ DomHostify has a persistent catalog/API foundation and marketplace listing, owne
 ## Current limitations
 - Domain availability is unknown until a live registrar adapter is connected.
 - Hosting and marketplace inventory is database-supplied, not automatically live provider inventory.
-- New account/session endpoints are implemented, but existing marketplace/transaction/ownership endpoints still use bootstrap server-side tokens until the dependency migration is completed.
+- New account/session endpoints are implemented, and ownership endpoints use them; main marketplace/transaction endpoints still need dependency migration.
 - Buy Now creates a temporary reservation only; no payment is collected and no domain is transferred.
 - The payment module is an integration boundary only, not live checkout.
 - Browser smoke and live deployment have not been verified.
