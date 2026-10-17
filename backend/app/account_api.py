@@ -1,6 +1,6 @@
 """Public account/session endpoints for the DomHostify marketplace."""
 import hashlib
-import hmac
+import secrets
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
@@ -40,14 +40,12 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)) -> dict:
         raise HTTPException(status_code=422, detail="New accounts may only register as buyer or seller.")
     try:
         user = UserAccount(
-            public_ref=hashlib.sha256(hmac.digest(b"domhostify-public-ref", email.encode("utf-8"), "sha256")).hexdigest()[:32],
+            public_ref=secrets.token_urlsafe(24),
             email=email,
             password_hash=hash_password(payload.password),
             role=role,
             active=True,
         )
-        # Add a random suffix to prevent the public reference from becoming an email-derived identifier.
-        user.public_ref = user.public_ref[:20] + hashlib.sha256(user.public_ref.encode()).hexdigest()[:12]
         db.add(user)
         db.flush()
         token, session = create_session(db, user)
@@ -93,6 +91,8 @@ def logout(
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Bearer session authentication required.")
     token = authorization[7:].strip()
+    if not token or len(token) > 256:
+        raise HTTPException(status_code=401, detail="Invalid session credentials.")
     session = db.scalar(select(UserSession).where(UserSession.token_hash == hashlib.sha256(token.encode("utf-8")).hexdigest()))
     if session is None or session.revoked_at is not None:
         return {"logged_out": True}
