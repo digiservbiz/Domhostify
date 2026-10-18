@@ -9,6 +9,20 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: domhostify_ci
+          POSTGRES_USER: domhostify_ci
+          POSTGRES_PASSWORD: domhostify_ci_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U domhostify_ci -d domhostify_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -19,9 +33,16 @@ jobs:
           cache: "pip"
       - name: Install dependencies
         run: python -m pip install -r requirements.txt
-      - name: Verify clean database migration upgrade and downgrade
+      - name: Verify clean SQLite migration upgrade and downgrade
         env:
           DATABASE_URL: sqlite:///./ci-migrations.db
+        run: |
+          alembic upgrade head
+          alembic downgrade base
+          alembic upgrade head
+      - name: Verify clean PostgreSQL migration upgrade and downgrade
+        env:
+          DATABASE_URL: postgresql+psycopg://domhostify_ci:domhostify_ci_password@localhost:5432/domhostify_ci
         run: |
           alembic upgrade head
           alembic downgrade base
