@@ -1,11 +1,11 @@
 # DomHostify — Project Status
 
-**Last updated:** 2026-10-18  
+**Last updated:** 2026-10-19  
 **Current phase:** Phase 5 — Account/session security and marketplace release hardening  
 **Overall progress:** 99%
 
 ## Executive status
-DomHostify now has the core authenticated marketplace release path: persistent listings, seller lifecycle management, DNS ownership verification, admin moderation, audit visibility, Make Offer and Buy Now reservation flows, and buyer/seller/admin session authorization. The admin moderation queue is now backed by dedicated authenticated endpoints rather than the public approved-listing catalog. Focused integration coverage has been added for seller/buyer/admin authorization boundaries and the moderation lifecycle. CI is running against the newest integration commit; browser/runtime smoke and external provider integrations remain release-stage work.
+DomHostify now has the core authenticated marketplace release path: persistent listings, seller lifecycle management, DNS ownership verification, admin moderation, audit visibility, Make Offer and Buy Now reservation flows, and buyer/seller/admin session authorization. The admin moderation queue is now backed by dedicated authenticated endpoints rather than the public approved-listing catalog. Focused integration coverage has been added for seller/buyer/admin authorization boundaries and the moderation lifecycle. GitHub Actions CI run #256 passed on commit `ca9440ac8caab3bf24b39931dc9efffb895cd388`: database migration upgrade/downgrade and the full test suite are green (95 passed). Browser/runtime smoke and external provider integrations remain release-stage work.
 
 ## Workstream tracker
 | Workstream | Status | Progress | Notes |
@@ -17,7 +17,7 @@ DomHostify now has the core authenticated marketplace release path: persistent l
 | Database and migrations | In progress | 98% | Migrations 0001–0010 committed |
 | Frontend | In progress | 86% | Public catalog, account/seller workspace, ownership controls and functional admin moderation/audit UI |
 | Provider/affiliate integrations | In progress | 32% | Safe affiliate and payment abstractions; no live payment or registrar provider |
-| Automated tests and CI | In progress | 99% | Auth bridge plus focused authenticated marketplace integration tests; newest CI run is the final verification gate |
+| Automated tests and CI | In progress | 100% | CI run #256 passed; migrations upgrade/downgrade cleanly and all 95 tests pass; live browser smoke remains unverified |
 | Deployment and monitoring | Not started | 0% | No production deployment verified |
 
 ## Verified existing deliverables
@@ -42,7 +42,7 @@ DomHostify now has the core authenticated marketplace release path: persistent l
 - [x] Session-aware account frontend with seller listing management and ownership controls
 
 ## Current verification gates
-- [ ] CI run for commit `932337d7b41bc965f7cafbf429f4a456de69022f` reaches a successful conclusion
+- [x] CI run #256 for commit `ca9440ac8caab3bf24b39931dc9efffb895cd388` passes: migration upgrade/downgrade and 95 tests
 - [ ] Browser/runtime smoke test against a running API
 - [ ] Production deployment and monitoring verification
 
@@ -55,12 +55,11 @@ DomHostify now has the core authenticated marketplace release path: persistent l
 - [ ] Auctions
 
 ## Next attack sequence
-1. Confirm the current CI run and fix any regression immediately if it fails.
-2. Run browser/runtime smoke: registration → login → seller listing → ownership challenge → admin queue → moderation → public listing.
-3. Harden production auth storage from prototype sessionStorage bearer tokens to secure HttpOnly cookies before public launch.
-4. Select and integrate live registrar, hosting and payment providers.
-5. Deploy staging, add monitoring/alerts, then perform production launch checks.
-6. Add auctions after the authenticated marketplace path is runtime-verified.
+1. Run a real browser/runtime smoke test against a deployed or locally running API: registration → login → seller listing → ownership challenge → admin queue → moderation → public listing.
+2. Replace prototype sessionStorage bearer-token storage with secure HttpOnly cookie auth, including CSRF protections and deployment-aware CORS/cookie settings; keep bearer compatibility only if explicitly required.
+3. Select and integrate live registrar, hosting and payment providers.
+4. Deploy staging, add monitoring/alerts, then perform production launch checks.
+5. Add auctions after the authenticated marketplace path is runtime-verified.
 
 ## Current limitations
 - Domain availability remains unknown until a live registrar adapter is connected.
