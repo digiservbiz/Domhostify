@@ -21,6 +21,7 @@ DomHostify helps people move from a business idea to an online presence: find a 
 - [Roadmap](docs/ROADMAP.md)
 - [Status and progress](status.md)
 - [Testing strategy](docs/TESTING.md)
+- [Staging deployment guide](docs/DEPLOYMENT.md)
 - [Security and privacy](docs/SECURITY.md)
 - [Development guide](CONTRIBUTING.md)
 - [Architecture decision log](docs/DECISIONS.md)
