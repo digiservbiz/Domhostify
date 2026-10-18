@@ -5,7 +5,7 @@
 **Overall progress:** 93%
 
 ## Executive status
-DomHostify has a persistent catalog/API foundation and marketplace listing, ownership, moderation, Make Offer, and Buy Now reservation flows. Payment foundation and transaction state-machine guards are committed. A real account/session foundation is now added: PBKDF2 password hashing, opaque hashed sessions, buyer/seller roles, registration, login, logout, and `/me` are implemented with migration 0010. Ownership challenge/verification accepts the session-backed seller dependency while retaining legacy bootstrap-token compatibility. The auth test suite now also covers the session role-reference bridge and buyer/seller permission boundaries. Main marketplace and transaction routes still need the same dependency migration. Runtime verification of the newest account work still requires CI.
+DomHostify has a persistent catalog/API foundation and marketplace listing, ownership, moderation, Make Offer, and Buy Now reservation flows. Payment foundation and transaction state-machine guards are committed. A real account/session foundation is now added: PBKDF2 password hashing, opaque hashed sessions, buyer/seller roles, registration, login, logout, and `/me` are implemented with migration 0010. Ownership challenge/verification accepts the session-backed seller dependency while retaining legacy bootstrap-token compatibility. Auth regression coverage now includes session role references, buyer/seller permission boundaries, admin role resolution, and the legacy bootstrap compatibility bridge. Main marketplace and transaction routes still need the same dependency migration. Runtime verification of the newest account work still requires CI.
 
 ## Workstream tracker
 | Workstream | Status | Progress | Notes |
@@ -17,7 +17,7 @@ DomHostify has a persistent catalog/API foundation and marketplace listing, owne
 | Database and migrations | In progress | 98% | Migrations 0001–0010 committed; prior 0001–0009 round-trip passed CI |
 | Frontend | In progress | 60% | Public catalog UI; account/dashboard UI and browser smoke pending |
 | Provider/affiliate integrations | In progress | 32% | Safe payment abstraction; no live payment or domain provider |
-| Automated tests and CI | In progress | 98% | Account flow plus session role-boundary tests committed; newest tests await CI |
+| Automated tests and CI | In progress | 98% | Account flow, session role-boundary, admin role, and bootstrap compatibility tests committed; newest tests await CI |
 | Deployment and monitoring | Not started | 0% | No production deployment verified |
 
 ## Verified existing deliverables
@@ -34,6 +34,7 @@ DomHostify has a persistent catalog/API foundation and marketplace listing, owne
 - [x] Migration 0010 for user accounts and sessions
 - [x] Ownership endpoints use the session-backed seller reference dependency with legacy bootstrap compatibility
 - [x] Account tests cover registration/login/logout and session role-boundary behavior
+- [x] Auth bridge regression tests cover admin resolution and legacy bootstrap compatibility
 - [ ] New account/auth tests confirmed by CI
 
 ## Remaining release blockers
