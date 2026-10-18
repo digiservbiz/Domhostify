@@ -10,10 +10,12 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-config.set_main_option(
-    "sqlalchemy.url",
-    normalize_database_url(os.getenv("DATABASE_URL", config.get_main_option("sqlalchemy.url"))),
+database_url = normalize_database_url(
+    os.getenv("DATABASE_URL", config.get_main_option("sqlalchemy.url"))
 )
+# ConfigParser treats percent signs as interpolation markers; preserve URL-encoded
+# credentials by escaping them for the config value before engine_from_config reads it.
+config.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
 target_metadata = Base.metadata
 
 
