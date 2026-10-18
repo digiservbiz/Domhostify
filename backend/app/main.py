@@ -3,8 +3,6 @@
 All catalog entries are illustrative demo data. Live provider adapters are not
 configured, so domain availability must remain unknown.
 """
-import hashlib
-import hmac
 import os
 import re
 import uuid
@@ -19,6 +17,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from backend.app.account_api import router as account_router
+from backend.app.auth import require_admin_ref, require_seller_ref
 from backend.app.database import AffiliateClick as DBAffiliateClick, HostingPlanRecord as DBHostingPlan, MarketplaceListing as DBMarketplaceListing, OwnershipChallenge as DBOwnershipChallenge, RegistrarOffer as DBRegistrarOffer, get_db, utc_now
 from backend.app.marketplace import add_listing_audit_event
 from backend.app.providers import DemoRegistrarProvider
@@ -214,27 +213,11 @@ def _approved_affiliate_destination(provider_key: str) -> str | None:
 
 
 def _require_admin_auth(authorization: str | None = Header(default=None)) -> str:
-    configured = os.getenv("DOMHOSTIFY_ADMIN_API_TOKEN", "").strip()
-    if not configured:
-        raise HTTPException(status_code=503, detail="Admin authentication is not configured.")
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Bearer authentication required.")
-    supplied = authorization[7:].strip()
-    if not supplied or not hmac.compare_digest(supplied, configured):
-        raise HTTPException(status_code=401, detail="Invalid admin credentials.")
-    return hashlib.sha256(supplied.encode("utf-8")).hexdigest()[:32]
+    return require_admin_ref(authorization=authorization)
 
 
 def _require_seller_auth(authorization: str | None = Header(default=None)) -> str:
-    configured = os.getenv("DOMHOSTIFY_SELLER_API_TOKEN", "").strip()
-    if not configured:
-        raise HTTPException(status_code=503, detail="Seller authentication is not configured.")
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Bearer authentication required.")
-    supplied = authorization[7:].strip()
-    if not supplied or not hmac.compare_digest(supplied, configured):
-        raise HTTPException(status_code=401, detail="Invalid seller credentials.")
-    return hashlib.sha256(supplied.encode("utf-8")).hexdigest()[:32]
+    return require_seller_ref(authorization=authorization)
 
 
 @app.get("/api/v1/affiliate/{provider_key}", tags=["affiliate"])
