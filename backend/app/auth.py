@@ -94,11 +94,8 @@ def _bootstrap_or_session_ref(authorization: str | None, db: Session | object, r
         if supplied and hmac.compare_digest(supplied, configured):
             return hashlib.sha256(supplied.encode("utf-8")).hexdigest()[:32]
 
-    # Legacy marketplace dependencies are called through thin wrappers in main.py.
-    # Those wrappers invoke this helper directly, so FastAPI's Depends object has
-    # not been resolved yet. Fall back to the configured SessionLocal in that case.
     owned_session = None
-    if isinstance(db, Depends):
+    if hasattr(db, "dependency") and hasattr(db, "use_cache"):
         owned_session = SessionLocal()
         db = owned_session
     try:
