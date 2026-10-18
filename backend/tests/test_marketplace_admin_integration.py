@@ -19,8 +19,9 @@ def _client_and_session():
             yield db
 
     app.dependency_overrides[get_db] = override_get_db
+    previous_session_local = auth_module.SessionLocal
     auth_module.SessionLocal = Session
-    return engine, Session, TestClient(app)
+    return engine, Session, previous_session_local, TestClient(app)
 
 
 def _register(client: TestClient, email: str, role: str) -> dict:
@@ -49,7 +50,7 @@ def _admin_token(Session) -> str:
 
 
 def test_seller_listing_lifecycle_and_admin_moderation_boundaries() -> None:
-    engine, Session, client = _client_and_session()
+    engine, Session, previous_session_local, client = _client_and_session()
     try:
         seller = _register(client, "seller-lifecycle@example.com", "seller")
         buyer = _register(client, "buyer-boundary@example.com", "buyer")
@@ -122,6 +123,7 @@ def test_seller_listing_lifecycle_and_admin_moderation_boundaries() -> None:
         assert "ownership_challenge_created" in event_types
         assert "admin_listing_approved" in event_types
     finally:
+        auth_module.SessionLocal = previous_session_local
         app.dependency_overrides.pop(get_db, None)
         Base.metadata.drop_all(bind=engine)
         engine.dispose()
