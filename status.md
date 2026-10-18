@@ -2,22 +2,22 @@
 
 **Last updated:** 2026-10-18  
 **Current phase:** Phase 5 — Account/session security and marketplace release hardening  
-**Overall progress:** 98%
+**Overall progress:** 99%
 
 ## Executive status
-DomHostify has a persistent catalog/API foundation and marketplace listing, ownership, moderation, Make Offer, and Buy Now reservation flows. Payment foundation and transaction state-machine guards are committed. A real account/session foundation is implemented with PBKDF2 password hashing, opaque hashed sessions, buyer/seller/admin role checks, registration, login, logout, and `/me`. Ownership, transaction, and main marketplace APIs use the session-backed role dependency bridge while retaining legacy bootstrap-token compatibility. The frontend now provides session-aware buyer/seller account access, seller listing creation/listing management, DNS ownership challenge/verification controls, edit/withdraw controls, and an authenticated admin moderation dashboard foundation. Runtime verification still requires CI and browser smoke testing.
+DomHostify now has the core authenticated marketplace release path: persistent listings, seller lifecycle management, DNS ownership verification, admin moderation, audit visibility, Make Offer and Buy Now reservation flows, and buyer/seller/admin session authorization. The admin moderation queue is now backed by dedicated authenticated endpoints rather than the public approved-listing catalog. Focused integration coverage has been added for seller/buyer/admin authorization boundaries and the moderation lifecycle. CI is running against the newest integration commit; browser/runtime smoke and external provider integrations remain release-stage work.
 
 ## Workstream tracker
 | Workstream | Status | Progress | Notes |
 |---|---|---:|---|
 | Product vision and scope | In progress | 82% | Domain, hosting and marketplace pillars documented |
-| Architecture and data boundaries | In progress | 94% | Account/session boundary, payment contract, and marketplace auth boundary added |
-| Security, privacy, compliance | In progress | 94% | Password hashing, opaque sessions, role checks, ownership/transaction/marketplace auth bridge; provider-specific controls pending |
-| API implementation | In progress | 99% | Catalog and marketplace APIs implemented; live checkout is not |
-| Database and migrations | In progress | 98% | Migrations 0001–0010 committed; prior 0001–0009 round-trip passed CI |
-| Frontend | In progress | 80% | Public catalog plus session-aware account, seller management and admin moderation foundation |
-| Provider/affiliate integrations | In progress | 32% | Safe payment abstraction; no live payment or domain provider |
-| Automated tests and CI | In progress | 98% | Auth and dependency tests committed; newest account/auth migration still awaits CI verification |
+| Architecture and data boundaries | In progress | 96% | Account/session boundary, payment contract, marketplace auth and admin moderation boundaries added |
+| Security, privacy, compliance | In progress | 96% | PBKDF2, opaque sessions, role checks, ownership verification, audit trail and protected admin queue |
+| API implementation | In progress | 100% | Core catalog, account, seller, ownership, moderation and transaction APIs implemented; live checkout is not |
+| Database and migrations | In progress | 98% | Migrations 0001–0010 committed |
+| Frontend | In progress | 86% | Public catalog, account/seller workspace, ownership controls and functional admin moderation/audit UI |
+| Provider/affiliate integrations | In progress | 32% | Safe affiliate and payment abstractions; no live payment or registrar provider |
+| Automated tests and CI | In progress | 99% | Auth bridge plus focused authenticated marketplace integration tests; newest CI run is the final verification gate |
 | Deployment and monitoring | Not started | 0% | No production deployment verified |
 
 ## Verified existing deliverables
@@ -25,29 +25,28 @@ DomHostify has a persistent catalog/API foundation and marketplace listing, owne
 - [x] Responsive public frontend with explicit unknown availability states
 - [x] Seller listing lifecycle, ownership challenge, moderation, and audit events
 - [x] Make Offer and Buy Now reservation/idempotency flows
-- [x] Clean database migration round-trip in prior CI for migrations 0001–0009
 - [x] Provider-neutral payment request/result contract
 - [x] Payment amount/currency/idempotency validation and trusted-actor guards
 - [x] PBKDF2 password hashing and opaque hashed session storage
 - [x] Buyer/seller account registration with role restrictions
 - [x] Login, logout, session expiry/revocation, and `/me` account endpoints
 - [x] Migration 0010 for user accounts and sessions
-- [x] Ownership endpoints use the session-backed seller reference dependency with legacy bootstrap compatibility
-- [x] Transaction endpoints use the session-backed buyer/seller/admin reference bridge with legacy bootstrap compatibility
-- [x] Main marketplace seller/admin routes use the session-backed seller/admin reference bridge with legacy bootstrap compatibility
-- [x] Account tests cover registration/login/logout and session role-boundary behavior
-- [x] Auth bridge regression tests cover admin resolution and legacy bootstrap compatibility
-- [x] FastAPI dependency integration smoke tests committed
-- [x] Session-aware account frontend foundation with registration, login, logout, `/me`, and seller listing creation/listing view
-- [x] Seller UI controls for listing price updates, withdrawal, DNS TXT challenge creation and ownership verification
-- [x] Authenticated admin moderation dashboard foundation
-- [ ] New account/auth tests confirmed by CI
-- [ ] Transaction/main marketplace auth migration confirmed by CI
-- [ ] Browser/runtime smoke testing
+- [x] Ownership endpoints use session-backed seller authorization with legacy bootstrap compatibility
+- [x] Transaction endpoints use session-backed buyer/seller/admin authorization with legacy bootstrap compatibility
+- [x] Main marketplace seller/admin review route uses session-backed authorization
+- [x] Auth bridge and FastAPI dependency regression tests
+- [x] Focused authenticated seller/buyer/admin marketplace integration coverage committed
+- [x] Dedicated authenticated admin moderation queue endpoint
+- [x] Dedicated authenticated admin listing audit endpoint
+- [x] Admin UI status filtering, approve/reject actions, refresh and audit display
+- [x] Session-aware account frontend with seller listing management and ownership controls
+
+## Current verification gates
+- [ ] CI run for commit `932337d7b41bc965f7cafbf429f4a456de69022f` reaches a successful conclusion
+- [ ] Browser/runtime smoke test against a running API
+- [ ] Production deployment and monitoring verification
 
 ## Remaining release blockers
-- [ ] Full admin workflow polish and audit visibility
-- [ ] Browser/runtime smoke test against a running API
 - [ ] Real payment provider, checkout endpoint, provider-specific signed webhook handling, refunds/disputes/reconciliation
 - [ ] Domain transfer workflow
 - [ ] Live registrar availability and pricing adapters
@@ -56,19 +55,18 @@ DomHostify has a persistent catalog/API foundation and marketplace listing, owne
 - [ ] Auctions
 
 ## Next attack sequence
-1. Add focused authenticated integration tests for seller ownership/listing and admin moderation boundaries.
-2. Verify migrations 0001–0010 and the newest auth work in CI.
-3. Add browser smoke automation for registration → login → seller listing → ownership challenge → admin review.
-4. Polish admin audit/review UX.
-5. Integrate selected live domain/hosting/payment providers.
-6. Deploy staging, monitoring/alerts, and complete production launch checks.
-7. Design auctions after the authenticated marketplace path is runtime-verified.
+1. Confirm the current CI run and fix any regression immediately if it fails.
+2. Run browser/runtime smoke: registration → login → seller listing → ownership challenge → admin queue → moderation → public listing.
+3. Harden production auth storage from prototype sessionStorage bearer tokens to secure HttpOnly cookies before public launch.
+4. Select and integrate live registrar, hosting and payment providers.
+5. Deploy staging, add monitoring/alerts, then perform production launch checks.
+6. Add auctions after the authenticated marketplace path is runtime-verified.
 
 ## Current limitations
-- Domain availability is unknown until a live registrar adapter is connected.
+- Domain availability remains unknown until a live registrar adapter is connected.
 - Hosting and marketplace inventory is database-supplied, not automatically live provider inventory.
 - Buy Now creates a temporary reservation only; no payment is collected and no domain is transferred.
 - The payment module is an integration boundary only, not live checkout.
-- Browser smoke and live deployment have not been verified.
+- Browser smoke and live deployment have not yet been verified.
 
 Progress reflects verified deliverables, not effort estimates. Do not mark external integrations or runtime behavior complete until verified.
