@@ -6,7 +6,7 @@
 
 ## Executive status
 
-The core authenticated marketplace path is implemented: persistent listings, seller lifecycle management, DNS ownership challenges, admin moderation and audit visibility, Make Offer and Buy Now reservation flows, and buyer/seller/admin session authorization. The last previously verified CI run (#261) passed 95 tests plus migration round-trip checks and runtime-smoke script compilation.
+The core authenticated marketplace path is implemented: persistent listings, seller lifecycle management, DNS ownership challenges, admin moderation and audit visibility, Make Offer and Buy Now reservation flows, and buyer/seller/admin session authorization. The last previously verified CI run (#261) passed 95 tests plus SQLite migration round-trip checks and runtime-smoke script compilation. CI has now been expanded to also run the migration round-trip against a temporary PostgreSQL 16 service; this new gate is pending its first result.
 
 **New deployment work:** a Render staging Blueprint now defines an API service and temporary PostgreSQL database. The repository now includes the psycopg 3 driver and normalizes common managed-Postgres URL schemes. Three focused tests cover URL normalization. These latest changes still need a fresh CI result and the Blueprint has not yet been deployed or validated in Render.
 
@@ -21,7 +21,7 @@ The core authenticated marketplace path is implemented: persistent listings, sel
 | Database and migrations | In progress | 98% | Migrations 0001–0010 committed; managed PostgreSQL URL support added, needs CI/runtime validation |
 | Frontend | In progress | 86% | Public catalog, account/seller workspace, ownership controls and admin moderation/audit UI |
 | Provider/affiliate integrations | In progress | 32% | Safe affiliate and payment abstractions; no live payment or registrar provider |
-| Automated tests and CI | In progress | 100% | Last verified CI #261 had 95 passing tests; new PostgreSQL URL tests are pending fresh CI |
+| Automated tests and CI | In progress | 95% | Last verified CI #261 had 95 passing tests; PostgreSQL migration round-trip and URL tests are awaiting the first run |
 | Deployment and monitoring | In progress | 15% | Render Blueprint and deployment guide committed; service is not yet deployed and monitoring is not configured |
 
 ## Verified existing deliverables
@@ -46,7 +46,7 @@ The core authenticated marketplace path is implemented: persistent listings, sel
 ## Current verification gates
 
 - [x] Previous CI run #261 passed migration upgrade/downgrade, smoke-script compilation, and 95 tests
-- [ ] Fresh CI run for Render/PostgreSQL deployment changes
+- [ ] Fresh CI run for Render/PostgreSQL deployment changes, including PostgreSQL migration round-trip
 - [ ] Apply the Render Blueprint and verify successful build, migration, and healthy service
 - [ ] Execute scripts/runtime_smoke.py against the actual staging URL and record results
 - [ ] Separate browser end-to-end test for DNS publication/verification, admin moderation, and public listing
