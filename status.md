@@ -5,7 +5,7 @@
 **Overall progress:** 99%
 
 ## Executive status
-DomHostify now has the core authenticated marketplace release path: persistent listings, seller lifecycle management, DNS ownership verification, admin moderation, audit visibility, Make Offer and Buy Now reservation flows, and buyer/seller/admin session authorization. The admin moderation queue is now backed by dedicated authenticated endpoints rather than the public approved-listing catalog. Focused integration coverage has been added for seller/buyer/admin authorization boundaries and the moderation lifecycle. GitHub Actions CI run #256 passed on commit `ca9440ac8caab3bf24b39931dc9efffb895cd388`: database migration upgrade/downgrade and the full test suite are green (95 passed). A live API smoke script has been added at `scripts/runtime_smoke.py` and documented; it still must be run against a running staging API. External provider integrations remain release-stage work.
+DomHostify now has the core authenticated marketplace release path: persistent listings, seller lifecycle management, DNS ownership verification, admin moderation, audit visibility, Make Offer and Buy Now reservation flows, and buyer/seller/admin session authorization. The admin moderation queue is now backed by dedicated authenticated endpoints rather than the public approved-listing catalog. Focused integration coverage has been added for seller/buyer/admin authorization boundaries and the moderation lifecycle. GitHub Actions CI run #261 passed on commit `391e2f0b0a3509e67e5f45d717144479a3ed54ae`: database migration upgrade/downgrade, runtime-smoke script compilation, and the full test suite are green (95 passed). A live API smoke script has been added at `scripts/runtime_smoke.py` and documented; it still must be run against a running staging API. External provider integrations remain release-stage work.
 
 ## Workstream tracker
 | Workstream | Status | Progress | Notes |
@@ -17,7 +17,7 @@ DomHostify now has the core authenticated marketplace release path: persistent l
 | Database and migrations | In progress | 98% | Migrations 0001–0010 committed |
 | Frontend | In progress | 86% | Public catalog, account/seller workspace, ownership controls and functional admin moderation/audit UI |
 | Provider/affiliate integrations | In progress | 32% | Safe affiliate and payment abstractions; no live payment or registrar provider |
-| Automated tests and CI | In progress | 100% | CI run #256 passed; migrations upgrade/downgrade cleanly and all 95 tests pass; live browser smoke remains unverified |
+| Automated tests and CI | In progress | 100% | CI run #261 passed; migrations upgrade/downgrade, smoke-script compilation, and all 95 tests pass; live browser smoke remains unverified |
 | Deployment and monitoring | Not started | 0% | No production deployment verified |
 
 ## Verified existing deliverables
@@ -43,7 +43,7 @@ DomHostify now has the core authenticated marketplace release path: persistent l
 - [x] Session-aware account frontend with seller listing management and ownership controls
 
 ## Current verification gates
-- [x] CI run #256 for commit `ca9440ac8caab3bf24b39931dc9efffb895cd388` passes: migration upgrade/downgrade and 95 tests
+- [x] CI run #261 for commit `391e2f0b0a3509e67e5f45d717144479a3ed54ae` passes: migration upgrade/downgrade, smoke-script compilation, and 95 tests
 - [ ] Execute `scripts/runtime_smoke.py` against a running staging API and record the actual outcome
 - [ ] Production deployment and monitoring verification
 
