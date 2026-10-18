@@ -5,7 +5,7 @@
 **Overall progress:** 99%
 
 ## Executive status
-DomHostify now has the core authenticated marketplace release path: persistent listings, seller lifecycle management, DNS ownership verification, admin moderation, audit visibility, Make Offer and Buy Now reservation flows, and buyer/seller/admin session authorization. The admin moderation queue is now backed by dedicated authenticated endpoints rather than the public approved-listing catalog. Focused integration coverage has been added for seller/buyer/admin authorization boundaries and the moderation lifecycle. GitHub Actions CI run #256 passed on commit `ca9440ac8caab3bf24b39931dc9efffb895cd388`: database migration upgrade/downgrade and the full test suite are green (95 passed). Browser/runtime smoke and external provider integrations remain release-stage work.
+DomHostify now has the core authenticated marketplace release path: persistent listings, seller lifecycle management, DNS ownership verification, admin moderation, audit visibility, Make Offer and Buy Now reservation flows, and buyer/seller/admin session authorization. The admin moderation queue is now backed by dedicated authenticated endpoints rather than the public approved-listing catalog. Focused integration coverage has been added for seller/buyer/admin authorization boundaries and the moderation lifecycle. GitHub Actions CI run #256 passed on commit `ca9440ac8caab3bf24b39931dc9efffb895cd388`: database migration upgrade/downgrade and the full test suite are green (95 passed). A live API smoke script has been added at `scripts/runtime_smoke.py` and documented; it still must be run against a running staging API. External provider integrations remain release-stage work.
 
 ## Workstream tracker
 | Workstream | Status | Progress | Notes |
@@ -36,6 +36,7 @@ DomHostify now has the core authenticated marketplace release path: persistent l
 - [x] Main marketplace seller/admin review route uses session-backed authorization
 - [x] Auth bridge and FastAPI dependency regression tests
 - [x] Focused authenticated seller/buyer/admin marketplace integration coverage committed
+- [x] Added opt-in live HTTP runtime smoke script for health/readiness, seller registration/session, listing persistence, DNS challenge generation, withdrawal, and logout revocation
 - [x] Dedicated authenticated admin moderation queue endpoint
 - [x] Dedicated authenticated admin listing audit endpoint
 - [x] Admin UI status filtering, approve/reject actions, refresh and audit display
@@ -43,7 +44,7 @@ DomHostify now has the core authenticated marketplace release path: persistent l
 
 ## Current verification gates
 - [x] CI run #256 for commit `ca9440ac8caab3bf24b39931dc9efffb895cd388` passes: migration upgrade/downgrade and 95 tests
-- [ ] Browser/runtime smoke test against a running API
+- [ ] Execute `scripts/runtime_smoke.py` against a running staging API and record the actual outcome
 - [ ] Production deployment and monitoring verification
 
 ## Remaining release blockers
@@ -55,7 +56,7 @@ DomHostify now has the core authenticated marketplace release path: persistent l
 - [ ] Auctions
 
 ## Next attack sequence
-1. Run a real browser/runtime smoke test against a deployed or locally running API: registration → login → seller listing → ownership challenge → admin queue → moderation → public listing.
+1. Execute `scripts/runtime_smoke.py` against a running staging API, then run a separate end-to-end browser test for admin queue, DNS ownership publication/verification, moderation, and public listing.
 2. Replace prototype sessionStorage bearer-token storage with secure HttpOnly cookie auth, including CSRF protections and deployment-aware CORS/cookie settings; keep bearer compatibility only if explicitly required.
 3. Select and integrate live registrar, hosting and payment providers.
 4. Deploy staging, add monitoring/alerts, then perform production launch checks.
