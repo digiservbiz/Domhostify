@@ -1,11 +1,10 @@
-"""Authenticated bootstrap API for Make Offer and temporary Buy Now intents.
+"""Authenticated account API for Make Offer and temporary Buy Now intents.
 
 Buy Now reservations only hold a listing briefly; they do not collect payments or
-perform transfers. Buyer/seller tokens are single-identity bootstrap credentials.
+perform transfers. Account sessions are preferred, with legacy bootstrap-token
+compatibility retained for existing integrations and tests.
 """
-import hashlib
 import hmac
-import os
 from datetime import timedelta, timezone
 from decimal import Decimal
 
@@ -15,6 +14,7 @@ from sqlalchemy import or_, select, update
 from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session
 
+from backend.app.auth import require_admin_ref, require_buyer_ref, require_seller_ref
 from backend.app.database import (
     MarketplaceListing,
     MarketplaceTransaction,
@@ -36,28 +36,19 @@ def _is_future(value, now) -> bool:
     return value > now
 
 
-def _token_ref(env_key: str, authorization: str | None, role: str) -> str:
-    configured = os.getenv(env_key, "").strip()
-    if not configured:
-        raise HTTPException(status_code=503, detail=f"{role.capitalize()} authentication is not configured.")
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Bearer authentication required.")
-    supplied = authorization[7:].strip()
-    if not supplied or not hmac.compare_digest(supplied, configured):
-        raise HTTPException(status_code=401, detail="Invalid credentials.")
-    return hashlib.sha256(supplied.encode("utf-8")).hexdigest()[:32]
-
-
+# Compatibility bridge: session-backed role dependencies accept real account
+# sessions and continue to accept the legacy DOMHOSTIFY_*_API_TOKEN bootstrap
+# credentials when configured.
 def _require_buyer_auth(authorization: str | None = Header(default=None)) -> str:
-    return _token_ref("DOMHOSTIFY_BUYER_API_TOKEN", authorization, "buyer")
+    return require_buyer_ref(authorization=authorization)
 
 
 def _require_seller_auth(authorization: str | None = Header(default=None)) -> str:
-    return _token_ref("DOMHOSTIFY_SELLER_API_TOKEN", authorization, "seller")
+    return require_seller_ref(authorization=authorization)
 
 
 def _require_admin_auth(authorization: str | None = Header(default=None)) -> str:
-    return _token_ref("DOMHOSTIFY_ADMIN_API_TOKEN", authorization, "admin")
+    return require_admin_ref(authorization=authorization)
 
 
 class OfferCreate(BaseModel):
