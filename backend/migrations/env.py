@@ -4,7 +4,7 @@ import os
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from backend.app.database import Base
+from backend.app.database import Base, normalize_database_url
 
 config = context.config
 if config.config_file_name is not None:
@@ -12,7 +12,7 @@ if config.config_file_name is not None:
 
 config.set_main_option(
     "sqlalchemy.url",
-    os.getenv("DATABASE_URL", config.get_main_option("sqlalchemy.url")),
+    normalize_database_url(os.getenv("DATABASE_URL", config.get_main_option("sqlalchemy.url"))),
 )
 target_metadata = Base.metadata
 
