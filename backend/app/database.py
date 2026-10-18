@@ -1,5 +1,6 @@
 """Persistent records for DomHostify catalog and marketplace data."""
 import os
+import secrets
 from datetime import datetime, timezone
 from decimal import Decimal
 
@@ -11,6 +12,10 @@ def utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def generate_public_ref() -> str:
+    return f"usr_{secrets.token_urlsafe(18)}"
+
+
 class Base(DeclarativeBase):
     pass
 
@@ -18,7 +23,7 @@ class Base(DeclarativeBase):
 class UserAccount(Base):
     __tablename__ = "user_accounts"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    public_ref: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    public_ref: Mapped[str] = mapped_column(String(64), unique=True, index=True, default=generate_public_ref)
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(256))
     role: Mapped[str] = mapped_column(String(20), default="buyer", server_default="buyer", index=True)
