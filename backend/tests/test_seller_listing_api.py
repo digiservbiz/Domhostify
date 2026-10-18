@@ -30,11 +30,16 @@ def test_seller_listing_requires_authentication(monkeypatch) -> None:
 
 
 def test_seller_listing_rejects_missing_or_invalid_bearer_token(monkeypatch) -> None:
-    monkeypatch.setenv("DOMHOSTIFY_SELLER_API_TOKEN", "test-seller-token")
-    missing = client.post("/api/v1/marketplace/seller/listings", json={"domain": "example.com", "asking_price": 100})
-    invalid = client.post("/api/v1/marketplace/seller/listings", headers={"Authorization": "Bearer wrong"}, json={"domain": "example.com", "asking_price": 100})
-    assert missing.status_code == 401
-    assert invalid.status_code == 401
+    engine, _ = _client_with_database(monkeypatch)
+    try:
+        missing = client.post("/api/v1/marketplace/seller/listings", json={"domain": "example.com", "asking_price": 100})
+        invalid = client.post("/api/v1/marketplace/seller/listings", headers={"Authorization": "Bearer wrong"}, json={"domain": "example.com", "asking_price": 100})
+        assert missing.status_code == 401
+        assert invalid.status_code == 401
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+        Base.metadata.drop_all(bind=engine)
+        engine.dispose()
 
 
 def test_seller_listing_enters_review_and_is_not_public(monkeypatch) -> None:
