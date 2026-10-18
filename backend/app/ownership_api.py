@@ -1,4 +1,4 @@
-"""Authenticated seller endpoints for DNS TXT domain ownership verification.
+"""Authenticated seller and admin marketplace ownership endpoints.
 
 The raw challenge token is returned only when a challenge is created. Verification
 uses bounded DNS resolution and never logs TXT contents. Ownership verification
@@ -8,17 +8,34 @@ from datetime import timezone
 
 import dns.exception
 import dns.resolver
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
-from backend.app.auth import require_seller_ref
-from backend.app.database import MarketplaceListing, OwnershipChallenge, get_db, utc_now
+from backend.app.auth import require_admin_ref, require_seller_ref
+from backend.app.database import ListingAuditEvent, MarketplaceListing, OwnershipChallenge, get_db, utc_now
 from backend.app.marketplace import add_listing_audit_event, create_ownership_challenge
 from backend.app.ownership import verify_listing_ownership
 
 router = APIRouter(tags=["ownership"])
+
+
+def _listing_payload(listing: MarketplaceListing) -> dict:
+    return {
+        "id": listing.id,
+        "domain": listing.domain,
+        "asking_price": listing.asking_price,
+        "currency": listing.currency,
+        "sale_type": listing.sale_type,
+        "listing_status": listing.listing_status,
+        "ownership_status": listing.ownership_status,
+        "moderation_status": listing.moderation_status,
+        "seller_ref": listing.seller_ref,
+        "active": listing.active,
+        "created_at": listing.created_at.isoformat() if listing.created_at else None,
+        "updated_at": listing.updated_at.isoformat() if listing.updated_at else None,
+    }
 
 
 @router.post("/api/v1/marketplace/seller/listings/{listing_id}/ownership-challenge", status_code=201)
@@ -97,3 +114,50 @@ def verify_listing_ownership_dns(
     except OperationalError as exc:
         db.rollback()
         raise HTTPException(status_code=503, detail="Marketplace database is not initialized. Apply database migrations first.") from exc
+
+
+@router.get("/api/v1/admin/marketplace/listings")
+def list_admin_marketplace_listings(
+    status: str | None = Query(default=None, max_length=30),
+    admin_ref: str = Depends(require_admin_ref),
+    db: Session = Depends(get_db),
+) -> list[dict]:
+    """Return the moderation queue to authenticated admins; never expose it publicly."""
+    del admin_ref
+    statement = select(MarketplaceListing).order_by(MarketplaceListing.created_at.desc()).limit(200)
+    if status and status.strip():
+        statement = statement.where(MarketplaceListing.listing_status == status.strip().lower())
+    try:
+        records = db.scalars(statement).all()
+    except OperationalError as exc:
+        raise HTTPException(status_code=503, detail="Marketplace database is not initialized. Apply database migrations first.") from exc
+    return [_listing_payload(record) for record in records]
+
+
+@router.get("/api/v1/admin/marketplace/listings/{listing_id}/audit")
+def get_admin_listing_audit(
+    listing_id: int,
+    admin_ref: str = Depends(require_admin_ref),
+    db: Session = Depends(get_db),
+) -> list[dict]:
+    """Return append-only moderation/ownership audit history for an admin."""
+    del admin_ref
+    try:
+        listing = db.get(MarketplaceListing, listing_id)
+        if listing is None:
+            raise HTTPException(status_code=404, detail="Marketplace listing not found.")
+        events = db.scalars(select(ListingAuditEvent).where(ListingAuditEvent.listing_id == listing_id).order_by(ListingAuditEvent.created_at.asc()).limit(200)).all()
+    except OperationalError as exc:
+        raise HTTPException(status_code=503, detail="Marketplace database is not initialized. Apply database migrations first.") from exc
+    return [
+        {
+            "id": event.id,
+            "listing_id": event.listing_id,
+            "event_type": event.event_type,
+            "actor_type": event.actor_type,
+            "actor_ref": event.actor_ref,
+            "event_note": event.event_note,
+            "created_at": event.created_at.isoformat() if event.created_at else None,
+        }
+        for event in events
+    ]
