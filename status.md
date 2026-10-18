@@ -2,10 +2,10 @@
 
 **Last updated:** 2026-10-18  
 **Current phase:** Phase 5 — Account/session security and marketplace release hardening  
-**Overall progress:** 97%
+**Overall progress:** 98%
 
 ## Executive status
-DomHostify has a persistent catalog/API foundation and marketplace listing, ownership, moderation, Make Offer, and Buy Now reservation flows. Payment foundation and transaction state-machine guards are committed. A real account/session foundation is implemented with PBKDF2 password hashing, opaque hashed sessions, buyer/seller/admin role checks, registration, login, logout, and `/me`. Ownership, transaction, and main marketplace APIs now use the session-backed role dependency bridge while retaining legacy bootstrap-token compatibility. The frontend now has a session-aware account page with buyer/seller registration, login/logout, `/me` session validation, and a seller listing-management foundation. Runtime verification of the newest account/auth work still requires CI and browser smoke testing.
+DomHostify has a persistent catalog/API foundation and marketplace listing, ownership, moderation, Make Offer, and Buy Now reservation flows. Payment foundation and transaction state-machine guards are committed. A real account/session foundation is implemented with PBKDF2 password hashing, opaque hashed sessions, buyer/seller/admin role checks, registration, login, logout, and `/me`. Ownership, transaction, and main marketplace APIs use the session-backed role dependency bridge while retaining legacy bootstrap-token compatibility. The frontend now provides session-aware buyer/seller account access, seller listing creation/listing management, DNS ownership challenge/verification controls, edit/withdraw controls, and an authenticated admin moderation dashboard foundation. Runtime verification still requires CI and browser smoke testing.
 
 ## Workstream tracker
 | Workstream | Status | Progress | Notes |
@@ -15,9 +15,9 @@ DomHostify has a persistent catalog/API foundation and marketplace listing, owne
 | Security, privacy, compliance | In progress | 94% | Password hashing, opaque sessions, role checks, ownership/transaction/marketplace auth bridge; provider-specific controls pending |
 | API implementation | In progress | 99% | Catalog and marketplace APIs implemented; live checkout is not |
 | Database and migrations | In progress | 98% | Migrations 0001–0010 committed; prior 0001–0009 round-trip passed CI |
-| Frontend | In progress | 70% | Public catalog plus session-aware account and seller dashboard foundation |
+| Frontend | In progress | 80% | Public catalog plus session-aware account, seller management and admin moderation foundation |
 | Provider/affiliate integrations | In progress | 32% | Safe payment abstraction; no live payment or domain provider |
-| Automated tests and CI | In progress | 98% | Account flow, session role-boundary, admin role, bootstrap compatibility, and dependency smoke tests committed; newest migration still awaits CI verification |
+| Automated tests and CI | In progress | 98% | Auth and dependency tests committed; newest account/auth migration still awaits CI verification |
 | Deployment and monitoring | Not started | 0% | No production deployment verified |
 
 ## Verified existing deliverables
@@ -39,11 +39,14 @@ DomHostify has a persistent catalog/API foundation and marketplace listing, owne
 - [x] Auth bridge regression tests cover admin resolution and legacy bootstrap compatibility
 - [x] FastAPI dependency integration smoke tests committed
 - [x] Session-aware account frontend foundation with registration, login, logout, `/me`, and seller listing creation/listing view
+- [x] Seller UI controls for listing price updates, withdrawal, DNS TXT challenge creation and ownership verification
+- [x] Authenticated admin moderation dashboard foundation
 - [ ] New account/auth tests confirmed by CI
 - [ ] Transaction/main marketplace auth migration confirmed by CI
+- [ ] Browser/runtime smoke testing
 
 ## Remaining release blockers
-- [ ] Full admin dashboard and richer seller listing management/ownership UI
+- [ ] Full admin workflow polish and audit visibility
 - [ ] Browser/runtime smoke test against a running API
 - [ ] Real payment provider, checkout endpoint, provider-specific signed webhook handling, refunds/disputes/reconciliation
 - [ ] Domain transfer workflow
@@ -53,12 +56,13 @@ DomHostify has a persistent catalog/API foundation and marketplace listing, owne
 - [ ] Auctions
 
 ## Next attack sequence
-1. Expand seller UI with ownership challenge/verification, edit, and withdraw actions; start admin dashboard foundation.
-2. Add focused end-to-end authenticated marketplace tests and verify migrations 0001–0010 in CI.
-3. Add browser smoke automation for public + authenticated flows.
-4. Integrate selected live providers and payment infrastructure only after access, terms, and provider-specific verification.
-5. Deploy staging, monitoring/alerts, and complete production launch checks.
-6. Design auctions after the authenticated marketplace path is runtime-verified.
+1. Add focused authenticated integration tests for seller ownership/listing and admin moderation boundaries.
+2. Verify migrations 0001–0010 and the newest auth work in CI.
+3. Add browser smoke automation for registration → login → seller listing → ownership challenge → admin review.
+4. Polish admin audit/review UX.
+5. Integrate selected live domain/hosting/payment providers.
+6. Deploy staging, monitoring/alerts, and complete production launch checks.
+7. Design auctions after the authenticated marketplace path is runtime-verified.
 
 ## Current limitations
 - Domain availability is unknown until a live registrar adapter is connected.
