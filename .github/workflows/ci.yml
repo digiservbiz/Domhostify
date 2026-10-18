@@ -26,5 +26,7 @@ jobs:
           alembic upgrade head
           alembic downgrade base
           alembic upgrade head
+      - name: Compile runtime smoke script
+        run: python -m py_compile scripts/runtime_smoke.py
       - name: Run tests
         run: python -m pytest -q
