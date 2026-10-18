@@ -11,7 +11,7 @@
 
 ## CI migration round-trip
 
-The GitHub Actions workflow uses a disposable SQLite database and runs `alembic upgrade head`, `alembic downgrade base`, and `alembic upgrade head` before pytest. This verifies that the current migration chain can be applied, reversed, and reapplied on a clean database. It does not replace a staging-database backup/restore rehearsal or production-database verification.
+The GitHub Actions workflow runs `alembic upgrade head`, `alembic downgrade base`, and `alembic upgrade head` against both a disposable SQLite database and a temporary PostgreSQL 16 service before pytest. This verifies that the migration chain can be applied, reversed, and reapplied on both supported database engines. It does not replace a staging-database backup/restore rehearsal or production-database verification.
 
 ## Rules
 - Demo fixtures must be labelled as demo data.
