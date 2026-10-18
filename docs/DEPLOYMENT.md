@@ -19,7 +19,7 @@ DomHostify includes a Render Blueprint at `render.yaml` to create a temporary AP
 
 ## Database URL handling
 
-Render PostgreSQL URLs may use either `postgres://` or `postgresql://`. The API normalizes these to SQLAlchemy's installed psycopg 3 driver URL (`postgresql+psycopg://`). The `psycopg[binary]` dependency is included in `requirements.txt`. SQLite URLs used in local development and CI remain unchanged.
+Render PostgreSQL URLs may use either `postgres://` or `postgresql://`. Both the API and Alembic migration configuration normalize these to SQLAlchemy's installed psycopg 3 driver URL (`postgresql+psycopg://`). The `psycopg[binary]` dependency is included in `requirements.txt`. SQLite URLs used in local development and CI remain unchanged.
 
 ## Staging safety
 
