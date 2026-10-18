@@ -3,14 +3,14 @@ import hashlib
 import hmac
 import os
 import secrets
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import Depends, Header, HTTPException
 from sqlalchemy import select
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
-from backend.app.database import UserAccount, UserSession, get_db, utc_now
+from backend.app.database import SessionLocal, UserAccount, UserSession, get_db, utc_now
 
 PASSWORD_ITERATIONS = 310_000
 SESSION_TTL_HOURS = 24
@@ -50,6 +50,12 @@ def _token_hash(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
+def _normalize_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
 def create_session(db: Session, user: UserAccount) -> tuple[str, UserSession]:
     raw_token = secrets.token_urlsafe(48)
     session = UserSession(user_id=user.id, token_hash=_token_hash(raw_token), expires_at=utc_now() + timedelta(hours=SESSION_TTL_HOURS))
@@ -67,7 +73,7 @@ def authenticate_request(authorization: str | None, db: Session, *, required_rol
         session = db.scalar(select(UserSession).where(UserSession.token_hash == _token_hash(token)))
         if session is None or session.revoked_at is not None:
             raise HTTPException(status_code=401, detail="Invalid or revoked session.")
-        if session.expires_at <= utc_now():
+        if _normalize_utc(session.expires_at) <= utc_now():
             session.revoked_at = utc_now()
             db.commit()
             raise HTTPException(status_code=401, detail="Session expired. Please sign in again.")
@@ -81,14 +87,28 @@ def authenticate_request(authorization: str | None, db: Session, *, required_rol
         raise HTTPException(status_code=503, detail="Account database is not initialized. Apply database migrations first.") from exc
 
 
-def _bootstrap_or_session_ref(authorization: str | None, db: Session, role: str) -> str:
+def _bootstrap_or_session_ref(authorization: str | None, db: Session | object, role: str) -> str:
     configured = os.getenv(f"DOMHOSTIFY_{role.upper()}_API_TOKEN", "").strip()
     if configured and authorization and authorization.startswith("Bearer "):
         supplied = authorization[7:].strip()
         if supplied and hmac.compare_digest(supplied, configured):
             return hashlib.sha256(supplied.encode("utf-8")).hexdigest()[:32]
-    user = authenticate_request(authorization, db, required_role=role)
-    return user.public_ref
+
+    # Legacy marketplace dependencies are called through thin wrappers in main.py.
+    # Those wrappers invoke this helper directly, so FastAPI's Depends object has
+    # not been resolved yet. Fall back to the configured SessionLocal in that case.
+    owned_session = None
+    if isinstance(db, Depends):
+        owned_session = SessionLocal()
+        db = owned_session
+    try:
+        if not configured and not authorization:
+            raise HTTPException(status_code=503, detail=f"{role.capitalize()} authentication is not configured.")
+        user = authenticate_request(authorization, db, required_role=role)  # type: ignore[arg-type]
+        return user.public_ref
+    finally:
+        if owned_session is not None:
+            owned_session.close()
 
 
 def require_user(authorization: str | None = Header(default=None), db: Session = Depends(get_db)) -> UserAccount:
