@@ -3,6 +3,7 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+import backend.app.auth as auth_module
 from backend.app.database import Base, ListingAuditEvent, MarketplaceListing, get_db
 from backend.app.main import app
 
@@ -13,6 +14,7 @@ def _client_with_database(monkeypatch):
     engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
     Base.metadata.create_all(bind=engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    monkeypatch.setattr(auth_module, "SessionLocal", TestSession)
 
     def override_get_db():
         with TestSession() as session:
