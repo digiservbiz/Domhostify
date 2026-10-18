@@ -3,6 +3,7 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+import backend.app.auth as auth_module
 from backend.app.auth import create_session, hash_password
 from backend.app.database import Base, MarketplaceListing, UserAccount, get_db
 from backend.app.main import app
@@ -18,6 +19,7 @@ def _client_and_session():
             yield db
 
     app.dependency_overrides[get_db] = override_get_db
+    auth_module.SessionLocal = Session
     return engine, Session, TestClient(app)
 
 
